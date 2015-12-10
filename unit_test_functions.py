@@ -21,3 +21,4 @@ def test_gradient_log_recognition():
 if __name__=='__main__':
     test_data_Sy()
     test_gradient_log_recognition()
+

@@ -2,6 +2,7 @@ import autograd.numpy as np
 import math
 from scipy import special
 from scipy import stats
+from scipy import misc
 from matplotlib import pyplot as plt
 
 def generate_theta_samples(logParams,S):
@@ -22,8 +23,6 @@ def H_i(samples,params,i):
     for theta in samples:
         h = h_s(theta)
         H+=h
-    print H
-    print gradient_log_recognition(theta, params,i)
     H = H/S*gradient_log_recognition(theta, params,i)
     return H
 
@@ -38,46 +37,48 @@ def h_s(theta):
     @summary: calculate h at a single sample point
     '''
     N = 100
-    h_s = math.log(prior_density(theta)*abc_likelihood(theta,N))
+    #print theta
+    
+    h_s = math.log(prior_density(theta))+abc_log_likelihood(theta,N)
     return h_s
 
-def abc_likelihood(theta, N):
+def abc_log_likelihood(theta, N):
     '''
     @summary: calculate abc likelihood for a single
     value of theta and N samples from simulator
     '''
-    likelihood = 0
+    log_kernels = np.zeros(N)
     for i in range(N):
         x = simulator(theta)
-        K = abc_kernel(x)
-        likelihood+=K
-    likelihood = K/N
-    return likelihood
+        log_kernels[i] = log_abc_kernel(x)
+    log_likelihood = misc.logsumexp(log_kernels)
+    log_likelihood = np.log(1./N)+log_likelihood
+    return log_likelihood
 
-def abc_kernel(x):
+def log_abc_kernel(x):
     '''
     @summary: kernel density, we use normal here
     @param y: observed data
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e = 1
-    #np.std(x)/50
+    e=np.std(x)/50
     Sx = np.mean(x)
     Sy=data_Sy(0.1)
-    return stats.norm.pdf(Sy, loc=Sx, scale=e)
+    #return stats.norm.pdf(Sy, loc=Sx, scale=e)
+    return np.log(1/(e*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
 
 def simulator(theta):
     '''
     @given a parameter theta, simulate
     '''
-    w = np.random.exponential(1/theta,500)
+    w = np.random.exponential(1/(theta*1.0),500)
     return w
 
 def prior_density(theta):
     '''
     @summary: calculate your prior density for some value of theta
-    For now, we assume standard normal prior
+    gamma prior
     '''
     alpha = 0.1
     beta = 0.1
@@ -158,7 +159,7 @@ def nat_grad(logParams):
     return nat_grad
 
 if __name__=='__main__':
-    logParams = np.array([0.1,0.1])
+    logParams = np.array([5,5])
     learning_rate = 0.5
     for i in range(100):
         logParams = iterate(logParams,learning_rate)
