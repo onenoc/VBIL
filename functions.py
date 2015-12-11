@@ -5,6 +5,7 @@ from scipy import stats
 from scipy import misc
 from matplotlib import pyplot as plt
 
+#CHECKED
 def generate_theta_samples(logParams,S):
     params = np.exp(logParams)
     samples = []
@@ -26,6 +27,7 @@ def H_i(samples,params,i):
     H = H/S*gradient_log_recognition(theta, params,i)
     return H
 
+#CHECKED
 def sample_theta(params):
     '''
     @param params: list of parameters for recognition model, gamma
@@ -38,10 +40,11 @@ def h_s(theta):
     '''
     N = 100
     #print theta
-    
+    #true_log_likelihood = stats.expon.pdf(data_Sy(0.1),
     h_s = math.log(prior_density(theta))+abc_log_likelihood(theta,N)
     return h_s
 
+#CORRECT
 def abc_log_likelihood(theta, N):
     '''
     @summary: calculate abc likelihood for a single
@@ -55,6 +58,7 @@ def abc_log_likelihood(theta, N):
     log_likelihood = np.log(1./N)+log_likelihood
     return log_likelihood
 
+#CORRECT
 def log_abc_kernel(x):
     '''
     @summary: kernel density, we use normal here
@@ -62,19 +66,22 @@ def log_abc_kernel(x):
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e=np.std(x)/50
+    e=np.std(x)/500
     Sx = np.mean(x)
     Sy=data_Sy(0.1)
     #return stats.norm.pdf(Sy, loc=Sx, scale=e)
     return np.log(1/(e*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
 
+#CORRECT
 def simulator(theta):
     '''
     @given a parameter theta, simulate
+    CORRECT
     '''
-    w = np.random.exponential(1/(theta*1.0),500)
+    w = np.random.exponential(1./theta,500)
     return w
 
+#CHECKED
 def prior_density(theta):
     '''
     @summary: calculate your prior density for some value of theta
@@ -84,6 +91,7 @@ def prior_density(theta):
     beta = 0.1
     return stats.gamma.pdf(theta, alpha, scale=1/beta)
 
+#CHECKED
 def gradient_log_recognition(theta, params,i):
     '''
     @summary: calculate the gradient of the log of your
@@ -98,6 +106,7 @@ def gradient_log_recognition(theta, params,i):
     delta.append(alpha/beta-theta)
     return delta[i]
 
+#CHECKED
 def numerical_gradient_log_recognition(theta,params,i):
     alpha = params[0]
     beta = params[1]
@@ -110,38 +119,38 @@ def numerical_gradient_log_recognition(theta,params,i):
         f2=np.log(stats.gamma.pdf(theta,alpha,scale=1/(beta+h)))
     return (f2-f1)/h
 
+#CHECKED
 def data_Sy(rate):
     '''
     @summary: the true data
     '''
-    w = np.random.exponential(1/rate,500)
+    w = np.random.exponential(1./rate,500)
     return np.mean(w)
-
 '''
 def c_i(i, params):
     @summary: control variate for single parameter
-
     return 0
 '''
 
+#CORRECT
 def test_likelihood():
     theta = 1
-    abc_likelihood(theta, 100)
     theta = 0.001*np.array([x+0.000001 for x in range(1000)])
     likelihoods=[]
     for i in theta:
-        likelihoods.append(abc_likelihood(i,100))
+        likelihoods.append(np.exp(abc_log_likelihood(i,100)))
     plt.plot(theta,likelihoods)
     plt.show()
 
-def fisher_info(params):
+#CORRECT
+def fisher_info(params,N):
     alpha = params[0]
     beta = params[1]
     I=np.zeros((2,2))
-    I[0][0]=special.polygamma(1,alpha)
-    I[0][1]=-1/beta
-    I[1][0]=-1/beta
-    I[1][1]=alpha/(beta**2)
+    I[0][0]=N*special.polygamma(1,alpha)
+    I[0][1]=N*-1/beta
+    I[1][0]=N*-1/beta
+    I[1][1]=N*alpha/(beta**2)
     return I
 
 def iterate(logParams,learning_rate):
@@ -155,13 +164,13 @@ def nat_grad(logParams):
     H = np.array([0,0])
     H[0] = H_i(samples,params,0)
     H[1] = H_i(samples,params,1)
-    nat_grad = params-np.dot(np.linalg.inv(fisher_info(params)),H)
+    nat_grad = params-np.dot(np.linalg.inv(fisher_info(params,1)),H)
     return nat_grad
 
 if __name__=='__main__':
-    logParams = np.array([5,5])
-    learning_rate = 0.5
+    logParams = np.array([1,1])
+    learning_rate = 0.05
     for i in range(100):
         logParams = iterate(logParams,learning_rate)
         print np.exp(logParams)
-
+    #test_likelihood()
