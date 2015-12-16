@@ -36,7 +36,7 @@ def H(params,n,k):
     return H
 
 def iterate(params,i):
-    a = 1./(1+i)
+    a = 1./(5+i)
     H_val = H(params,200,57)
     fisher = fisher_info(params)
     params = params-a*(np.dot(fisher,params)-H_val)
@@ -50,10 +50,10 @@ def iterate_nat_grad(params,i):
     
 
 if __name__=='__main__':
-    params = np.array([400.,400.])
+    params = np.array([100.,30.])
     for i in range(3000000):
-       params = iterate_nat_grad(params,i)
-       if i%1==0:
+       params = iterate(params,i)
+       if i%1000==0:
            print params
            alpha = params[0]
            beta = params[1]

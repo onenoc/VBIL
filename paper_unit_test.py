@@ -22,6 +22,14 @@ def test_H(params):
     print 0.221322-0.181322
     print -0.181322
 
+def test_dot(params):
+    fisher = pe.fisher_info(params)
+    H_val = pe.H(params,1,1)
+    print "these should be same"
+    print np.dot(fisher,params)
+    print np.array([0.38132296,2.37022589])
+    
+
 if __name__=='__main__':
     params=np.zeros(2)
     params[0]=5
@@ -29,3 +37,4 @@ if __name__=='__main__':
     test_fisher_info(params)
     test_inv_fisher(params)
     test_H(params)
+    test_dot(params)
