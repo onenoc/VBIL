@@ -5,14 +5,6 @@ from scipy import stats
 from scipy import misc
 from matplotlib import pyplot as plt
 
-#CHECKED
-def generate_theta_samples(logParams,S):
-    params = np.exp(logParams)
-    samples = []
-    for s in range(S):
-        samples.append(sample_theta(params))
-    return samples
-
 def H_i(samples,params,i):
     '''
     @summary: calculate H via sampling for parameter i
@@ -28,11 +20,12 @@ def H_i(samples,params,i):
     return H
 
 #CHECKED
-def sample_theta(params):
+def sample_theta(params,S):
     '''
     @param params: list of parameters for recognition model, gamma
+    @param S: number of samples
     '''
-    return np.random.gamma(params[0],1/params[1])
+    return np.random.gamma(params[0],1/params[1],size=S)
 
 def h_s(theta):
     '''
@@ -132,7 +125,7 @@ def c_i(i, params):
     return 0
 '''
 
-#CORRECT
+#CHECKED
 def test_likelihood():
     theta = 1
     theta = 0.001*np.array([x+0.000001 for x in range(1000)])
@@ -142,7 +135,7 @@ def test_likelihood():
     plt.plot(theta,likelihoods)
     plt.show()
 
-#CORRECT
+#CHECKED, BUT WHAT ABOUT N?
 def fisher_info(params,N):
     alpha = params[0]
     beta = params[1]
@@ -153,24 +146,44 @@ def fisher_info(params,N):
     I[1][1]=N*alpha/(beta**2)
     return I
 
-def iterate(logParams,learning_rate):
-    a = learning_rate
-    logParams = logParams-a*nat_grad(logParams)
+def iterate(logParams,i):
+    a = 1./(500000000+i)
+    #logParams = logParams-a*nat_grad(logParams)
+    params = np.exp(logParams)
+    grad = grad_KL(params)
+    logParams = logParams-a*grad*params
     return logParams
 
 def nat_grad(logParams):
     params = np.exp(logParams)
-    samples = generate_theta_samples(params,100)
+    samples = sample_theta(params,100)
+    #samples = generate_theta_samples(params,100)
     H = np.array([0,0])
     H[0] = H_i(samples,params,0)
     H[1] = H_i(samples,params,1)
     nat_grad = params-np.dot(np.linalg.inv(fisher_info(params,1)),H)
     return nat_grad
 
+def grad_KL(params):
+    samples = sample_theta(params,100)
+    #generate_theta_samples(params,100)
+    H = np.array([0,0])
+    H[0] = H_i(samples,params,0)
+    H[1] = H_i(samples,params,1)
+    return np.dot(fisher_info(params,1),params)-H
+
+
+def lower_bound(params):
+    samples_1 = sample_theta(params,100)
+    samples_2 = sample_theta(params,100)
+
 if __name__=='__main__':
-    logParams = np.array([1,1])
-    learning_rate = 0.05
+    logParams = np.array([-2,-2])
+    learning_rate = 0.000000005
     for i in range(100):
-        logParams = iterate(logParams,learning_rate)
+        logParams = iterate(logParams,i)
         print np.exp(logParams)
+        alpha = np.exp(logParams[0])
+        beta = np.exp(logParams[1])
+        print alpha/beta
     #test_likelihood()

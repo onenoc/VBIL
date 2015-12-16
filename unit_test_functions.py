@@ -31,25 +31,31 @@ def test_fisher_info():
     true_fisher = 500*np.array([[28.983,-0.1983],[-0.193,0.007]])
     print true_fisher
 
-def test_generate_theta_samples():
-    logParams = np.zeros(2)
-    alpha = 0.1
-    beta = 0.1
-    logParams[0] = np.log(alpha)
-    logParams[1] = np.log(beta)
-    samples = functions.generate_theta_samples(logParams,50000)
-    print "These should be close"
-    print np.mean(samples)
-    print alpha/beta
-
 def test_prior_density():
     print "These should be equal"
     print "0.6566234388"
-    print functions.prior_density(0.1) 
+    print functions.prior_density(0.1)
 
+def test_h_s():
+    print "h_s: 0.01,1,10"
+    print functions.h_s(0.01)
+    print functions.h_s(0.1)
+    print functions.h_s(1)
+    print functions.h_s(10)
+
+def test_grad_KL():
+    print "for parameters close to true value, these should be small"
+    params = np.zeros(2)
+    alpha = 50
+    beta = 500
+    params[0] = alpha
+    params[1] = beta
+    print functions.grad_KL(params)
+    
 if __name__=='__main__':
     #test_data_Sy()
     #test_gradient_log_recognition()
     #test_fisher_info()
-    test_generate_theta_samples()
     test_prior_density()
+    test_grad_KL()
+    print test_h_s()
