@@ -15,8 +15,9 @@ def H_i(samples,params,i):
     S=len(samples)
     for theta in samples:
         h = h_s(theta)
-        H+=h
-    H = H/S*gradient_log_recognition(theta, params,i)
+        H+=h*gradient_log_recognition(theta, params,i)
+    H = H/S
+    print "H"
     return H
 
 #CHECKED
@@ -31,11 +32,16 @@ def h_s(theta):
     '''
     @summary: calculate h at a single sample point
     '''
-    N = 100
+    N = 10
     #print theta
     #true_log_likelihood = stats.expon.pdf(data_Sy(0.1),
-    h_s = math.log(prior_density(theta))+abc_log_likelihood(theta,N)
+    #print abc_log_likelihood(theta,N)
+    h_s = math.log(prior_density(theta))+log_likelihood(theta,N)
+    #abc_log_likelihood(theta,N)
     return h_s
+
+def log_likelihood(theta,N):
+    return 500*np.log(theta)-theta*500*data_Sy(theta)
 
 #CORRECT
 def abc_log_likelihood(theta, N):
@@ -59,7 +65,7 @@ def log_abc_kernel(x):
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e=np.std(x)/500
+    e=np.std(x)/np.sqrt(500)
     Sx = np.mean(x)
     Sy=data_Sy(0.1)
     #return stats.norm.pdf(Sy, loc=Sx, scale=e)
@@ -80,8 +86,8 @@ def prior_density(theta):
     @summary: calculate your prior density for some value of theta
     gamma prior
     '''
-    alpha = 0.1
-    beta = 0.1
+    alpha = 0.5
+    beta = 0.5
     return stats.gamma.pdf(theta, alpha, scale=1/beta)
 
 #CHECKED
@@ -117,6 +123,7 @@ def data_Sy(rate):
     '''
     @summary: the true data
     '''
+    np.random.seed(0)
     w = np.random.exponential(1./rate,500)
     return np.mean(w)
 '''
@@ -146,23 +153,20 @@ def fisher_info(params,N):
     I[1][1]=N*alpha/(beta**2)
     return I
 
-def iterate(logParams,i):
-    a = 1./(500000000+i)
-    #logParams = logParams-a*nat_grad(logParams)
-    params = np.exp(logParams)
-    grad = grad_KL(params)
-    logParams = logParams-a*grad*params
-    return logParams
-
-def nat_grad(logParams):
-    params = np.exp(logParams)
+def nat_grad(params):
     samples = sample_theta(params,100)
     #samples = generate_theta_samples(params,100)
-    H = np.array([0,0])
-    H[0] = H_i(samples,params,0)
-    H[1] = H_i(samples,params,1)
+    H = np.array([H_i(samples,params,0),H_i(samples,params,1)])
     nat_grad = params-np.dot(np.linalg.inv(fisher_info(params,1)),H)
     return nat_grad
+
+def iterate(params,i):
+    a = 1./(5000+i)
+    #logParams = logParams-a*nat_grad(logParams)
+    params = params-a*nat_grad(params)
+    print params
+    return params
+
 
 def grad_KL(params):
     samples = sample_theta(params,100)
@@ -172,18 +176,23 @@ def grad_KL(params):
     H[1] = H_i(samples,params,1)
     return np.dot(fisher_info(params,1),params)-H
 
-
 def lower_bound(params):
     samples_1 = sample_theta(params,100)
     samples_2 = sample_theta(params,100)
 
 if __name__=='__main__':
-    logParams = np.array([-2,-2])
-    learning_rate = 0.000000005
+    params = np.array([10.,10.])
     for i in range(100):
-        logParams = iterate(logParams,i)
-        print np.exp(logParams)
-        alpha = np.exp(logParams[0])
-        beta = np.exp(logParams[1])
+        params = iterate(params,i)
+        alpha = params[0]
+        beta = params[1]
+        print "estimated params"
+        print params
+        print "estimated mean"
         print alpha/beta
+        print "true params"
+        print 0.5+500, 0.5+data_Sy(0.1)*500
+        print "true mean"
+        print (0.5+500)/(0.5+data_Sy(0.1)*500)
+        
     #test_likelihood()
