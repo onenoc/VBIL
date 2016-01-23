@@ -72,7 +72,9 @@ def iterate_nat_grad(params,i):
     #params = params+a*(params-np.dot(inv_fisher(params),H_val))
     return params
 
-
+def nat_grad(params):
+    H_val = H(params,200,57)
+    return params-np.dot(inv_fisher(params),H_val)
     
 if __name__=='__main__':
     #logparams = np.array([np.random.randint(0,1),np.random.randint(0,1)])

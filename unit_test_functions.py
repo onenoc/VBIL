@@ -12,11 +12,11 @@ def test_gradient_log_recognition():
     theta = 1
     params = np.array([2,0.5])
     print "these should be approx equal"
-    print functions.gradient_log_recognition(theta,params,0)
-    print functions.numerical_gradient_log_recognition(theta,params,0)
+    print functions.gradient_log_recognition(params,theta,0)
+    print functions.numerical_gradient_log_recognition(params,theta,0)
     print "these should be approx equal"
-    print functions.gradient_log_recognition(theta,params,1)
-    print functions.numerical_gradient_log_recognition(theta,params,1)
+    print functions.gradient_log_recognition(params,theta,1)
+    print functions.numerical_gradient_log_recognition(params,theta,1)
 
 def test_fisher_info():
     params =np.zeros(2)
@@ -54,8 +54,8 @@ def test_grad_KL():
     
 if __name__=='__main__':
     #test_data_Sy()
-    #test_gradient_log_recognition()
+    test_gradient_log_recognition()
     #test_fisher_info()
-    test_prior_density()
-    test_grad_KL()
-    print test_h_s()
+    #test_prior_density()
+    #test_grad_KL()
+    #print test_h_s()

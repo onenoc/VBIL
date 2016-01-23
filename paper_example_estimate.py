@@ -53,6 +53,14 @@ def iterate_nat_grad(params,i):
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
     return params
 
+def iterate(params,i):
+    a = 1./(5+i)
+    samples = sample_theta(params,20)
+    #H_val = np.array([H_i(samples,params,200,57,0),H_i(samples,params,200,57,1)])
+    H_val = H(params,200,57)
+    params = params-a*(np.dot(fisher_info(params),params)-H_val)
+    return params
+
 def H_i(samples,params,n,k,i):
     H = 0
     S = len(samples)
@@ -69,6 +77,7 @@ def sample_theta(params,S):
     @param params: list of parameters for recognition model, gamma
     @param S: number of samples
     '''
+    print params[0],params[1]
     return np.random.beta(params[0],params[1],size=S)
 
 def h_s(theta,n,k):
@@ -103,7 +112,7 @@ def numerical_gradient_log_recognition(params,theta,i):
     return (f2-f1)/h
 
 if __name__=='__main__':
-    params = np.array([100.,100.])
+    params = np.array([30.,30.])
     n = 200
     k = 57
     true_alpha = k+1.
@@ -111,7 +120,7 @@ if __name__=='__main__':
     alpha = 0
     beta = 0
     for i in range(1,1000):
-       params = iterate_nat_grad(params,i)
+       params = iterate(params,i)
        if i%100==0:
            print "param estimates"
            print params

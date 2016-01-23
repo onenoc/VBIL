@@ -4,6 +4,7 @@ from scipy import special
 from scipy import stats
 from scipy import misc
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 def H_i(samples,params,i):
     '''
@@ -14,10 +15,11 @@ def H_i(samples,params,i):
     H = 0
     S=len(samples)
     for theta in samples:
-        h = h_s(theta)
-        H+=h*gradient_log_recognition(theta, params,i)
+        h = h_s(theta)*gradient_log_recognition(params,theta,i)
+        H+=h
     H = H/S
-    print "H"
+    print "H",i
+    print H
     return H
 
 #CHECKED
@@ -28,20 +30,20 @@ def sample_theta(params,S):
     '''
     return np.random.gamma(params[0],1/params[1],size=S)
 
+#should be close to max at 0.1, which is the case
 def h_s(theta):
     '''
     @summary: calculate h at a single sample point
     '''
     N = 10
     #print theta
-    #true_log_likelihood = stats.expon.pdf(data_Sy(0.1),
     #print abc_log_likelihood(theta,N)
     h_s = math.log(prior_density(theta))+log_likelihood(theta,N)
     #abc_log_likelihood(theta,N)
     return h_s
 
 def log_likelihood(theta,N):
-    return 500*np.log(theta)-theta*500*data_Sy(theta)
+    return 500*np.log(theta)-theta*500*data_Sy(0.1)
 
 #CORRECT
 def abc_log_likelihood(theta, N):
@@ -86,12 +88,12 @@ def prior_density(theta):
     @summary: calculate your prior density for some value of theta
     gamma prior
     '''
-    alpha = 0.5
-    beta = 0.5
+    alpha = 0.1
+    beta = 0.1
     return stats.gamma.pdf(theta, alpha, scale=1/beta)
 
 #CHECKED
-def gradient_log_recognition(theta, params,i):
+def gradient_log_recognition(params,theta,i):
     '''
     @summary: calculate the gradient of the log of your
     recognition density.  For now we assume gamma recognition model
@@ -106,7 +108,7 @@ def gradient_log_recognition(theta, params,i):
     return delta[i]
 
 #CHECKED
-def numerical_gradient_log_recognition(theta,params,i):
+def numerical_gradient_log_recognition(params,theta,i):
     alpha = params[0]
     beta = params[1]
     h=0.000001
@@ -147,33 +149,28 @@ def fisher_info(params,N):
     alpha = params[0]
     beta = params[1]
     I=np.zeros((2,2))
-    I[0][0]=N*special.polygamma(1,alpha)
-    I[0][1]=N*-1/beta
-    I[1][0]=N*-1/beta
-    I[1][1]=N*alpha/(beta**2)
+    I[0][0]=special.polygamma(1,alpha)
+    I[0][1]=-1/beta
+    I[1][0]=-1/beta
+    I[1][1]=alpha/(beta**2)
     return I
 
 def nat_grad(params):
-    samples = sample_theta(params,100)
+    samples = sample_theta(params,5000)
     #samples = generate_theta_samples(params,100)
     H = np.array([H_i(samples,params,0),H_i(samples,params,1)])
     nat_grad = params-np.dot(np.linalg.inv(fisher_info(params,1)),H)
     return nat_grad
 
 def iterate(params,i):
-    a = 1./(5000+i)
-    #logParams = logParams-a*nat_grad(logParams)
+    a = 2./(1+i)
     params = params-a*nat_grad(params)
-    print params
     return params
 
-
 def grad_KL(params):
-    samples = sample_theta(params,100)
+    samples = sample_theta(params,5000)
     #generate_theta_samples(params,100)
-    H = np.array([0,0])
-    H[0] = H_i(samples,params,0)
-    H[1] = H_i(samples,params,1)
+    H = np.array([H_i(samples,params,0), H_i(samples,params,1)])
     return np.dot(fisher_info(params,1),params)-H
 
 def lower_bound(params):
@@ -181,18 +178,23 @@ def lower_bound(params):
     samples_2 = sample_theta(params,100)
 
 if __name__=='__main__':
-    params = np.array([10.,10.])
-    for i in range(100):
-        params = iterate(params,i)
-        alpha = params[0]
-        beta = params[1]
-        print "estimated params"
-        print params
-        print "estimated mean"
-        print alpha/beta
-        print "true params"
-        print 0.5+500, 0.5+data_Sy(0.1)*500
-        print "true mean"
-        print (0.5+500)/(0.5+data_Sy(0.1)*500)
-        
+    params = np.array([100.,100.])
+    for i in range(100000):
+        if i%10000==0:
+            params = iterate(params,i)
+            alpha = params[0]
+            beta = params[1]
+            print "estimated params"
+            print params
+            print "estimated mean"
+            print alpha/beta
+            print "true params"
+            print 0.1+500, 0.1+data_Sy(0.1)*500
+            print "true mean"
+            print (0.1+500)/(0.1+data_Sy(0.1)*500)
+    true_gamma_samples = np.random.gamma(500.1,1/(0.1+data_Sy(0.1)*500),100000)
+    recognition_gamma_samples = np.random.gamma(params[0],1/params[1],100000)
+    sns.distplot(true_gamma_samples)
+    sns.distplot(recognition_gamma_samples)
+    plt.show()    
     #test_likelihood()
