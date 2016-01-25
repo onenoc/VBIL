@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import special
 from scipy import stats
+from scipy import misc
 from matplotlib import pyplot as plt
 import seaborn as sns
 import math
@@ -64,8 +65,43 @@ def prior_density(theta):
 def log_likelihood(theta,n,data):
     return n*np.log(theta)-theta*np.sum(data)
 
+def abc_log_likelihood(theta,n,data):
+    N=20
+    log_kernels = np.zeros(N)
+    for i in range(N):
+        x = simulator(theta)
+        log_kernels[i] = log_abc_kernel(x,data)
+    ll = misc.logsumexp(log_kernels)
+    ll = np.log(1./N)+ll
+    return ll
+
+def log_abc_kernel(x,data):
+    '''
+    @summary: kernel density, we use normal here
+    @param y: observed data
+    @param x: simulator output, often the mean of kernel density
+    @param e: bandwith of density
+    '''
+    e=np.std(x)/np.sqrt(500)
+    Sx = np.mean(x)
+    Sy = np.mean(data)
+    #return stats.norm.pdf(Sy, loc=Sx, scale=e)
+    return np.log(1/((e**2)*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
+
+#CORRECT
+def simulator(theta):
+    '''
+    @given a parameter theta, simulate
+    CORRECT
+    '''
+    w = np.random.exponential(1./theta,500)
+    return w
+
 def h_s(theta,n,data):
     h_s = np.log(prior_density(theta))+log_likelihood(theta,n,data)
+    #print "log-like"
+    #print log_likelihood(theta,n,data)
+    #print abc_log_likelihood(theta,n,data)
     return h_s
 
 def data_Sy(theta,n):
@@ -73,7 +109,7 @@ def data_Sy(theta,n):
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,1)
+    samples = sample_theta(params,1000)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
@@ -82,7 +118,7 @@ def iterate_nat_grad(params,data,i):
 
 if __name__=='__main__':
     data = data_Sy(0.1,500)
-    params = np.array([100.,100.])
+    params = np.array([10.,10.])
     for i in range(5000):
         params = iterate_nat_grad(params,data,i)
         if i%100==0:
