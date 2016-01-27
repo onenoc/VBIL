@@ -12,20 +12,16 @@ def H_i(samples,params,data,i):
     S = len(samples)
     c = c_i(params,n,data,S,i)
     #c = 0
-    for theta in samples:
-        inner = (h_s(theta,n,data)-c)*gradient_log_recognition(params,theta,i)
-        H_i += inner
-    H_i = H_i/S
+    inner = (h_s(samples,n,data)-c)*gradient_log_recognition(params,samples,i)
+    H_i = np.mean(inner)
     return H_i
 
 def c_i(params,n,data,S,i):
     first = np.zeros(S)
     second = np.zeros(S)
     samples = sample_theta(params,S)
-    for s in range(S):
-        theta = samples[s]
-        first[s] = h_s(theta,n,data)*gradient_log_recognition(params,theta,i)
-        second[s] = gradient_log_recognition(params,theta,i)
+    first = h_s(samples,n,data)*gradient_log_recognition(params,samples,i)
+    second = gradient_log_recognition(params,samples,i)
     return np.cov(first,second)[0][1]/np.cov(first,second)[1][1]
     
 def sample_theta(params,S):
@@ -65,14 +61,17 @@ def prior_density(theta):
 def log_likelihood(theta,n,data):
     return n*np.log(theta)-theta*np.sum(data)
 
-def abc_log_likelihood(theta,n,data):
-    N=20
+def abc_log_likelihood(samples,n,data):
+    N=350
+    S = len(samples)
     log_kernels = np.zeros(N)
-    for i in range(N):
-        x = simulator(theta)
-        log_kernels[i] = log_abc_kernel(x,data)
-    ll = misc.logsumexp(log_kernels)
-    ll = np.log(1./N)+ll
+    ll = np.zeros(S)
+    for s in range(S):
+        theta = samples[s]
+        x = simulator(theta,N).reshape(len(data),N)
+        log_kernels = log_abc_kernel(x,data)
+        ll[s] = misc.logsumexp(log_kernels)
+        ll[s] = np.log(1./N)+ll[s]
     return ll
 
 def log_abc_kernel(x,data):
@@ -82,23 +81,25 @@ def log_abc_kernel(x,data):
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e=np.std(x)/np.sqrt(500)
-    Sx = np.mean(x)
+    #e=np.std(x)/np.sqrt(len(data))
+    e = 0.8
+    Sx = np.mean(x,0)
     Sy = np.mean(data)
+    return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
     #return stats.norm.pdf(Sy, loc=Sx, scale=e)
-    return np.log(1/((e**2)*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
+    #return np.log(1/(e*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
 
 #CORRECT
-def simulator(theta):
+def simulator(theta,N):
     '''
     @given a parameter theta, simulate
     CORRECT
     '''
-    w = np.random.exponential(1./theta,500)
+    w = np.random.exponential(1./theta,500*N)
     return w
 
 def h_s(theta,n,data):
-    h_s = np.log(prior_density(theta))+log_likelihood(theta,n,data)
+    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,data)
     #print "log-like"
     #print log_likelihood(theta,n,data)
     #print abc_log_likelihood(theta,n,data)
@@ -109,7 +110,7 @@ def data_Sy(theta,n):
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,1000)
+    samples = sample_theta(params,3000)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
@@ -121,7 +122,7 @@ if __name__=='__main__':
     params = np.array([10.,10.])
     for i in range(5000):
         params = iterate_nat_grad(params,data,i)
-        if i%100==0:
+        if i%1==0:
             alpha = params[0]
             beta = params[1]
             print "estimated params"

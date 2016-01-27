@@ -40,48 +40,41 @@ def H(params,n,k):
     H[1]=(n-k)*special.polygamma(1,beta)-n*special.polygamma(1,alpha+beta)
     return H
 
-def iterate_nat_grad(params,i):
+def iterate_nat_grad(params,i,n,k):
     a = 1./(5+i)
-    samples = sample_theta(params,20)
-    H_val = np.array([H_i(samples,params,200,57,0),H_i(samples,params,200,57,1)])
-    #H_val[0] = H_i(samples,params,200,57,0)
-    #H_val[1] = H_i(samples,params,200,57,1)
-    H_true = H(params,200,57)
-    #print H_val
-    #print H_true
-    #params = (1.-a)*params+a*np.dot(inv_fisher(params),H_val)
+    samples = sample_theta(params,1000)
+    H_val = np.array([H_i(samples,params,n,k,0),H_i(samples,params,n,k,1)])
+    H_true = H(params,n,k)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
     return params
 
-def iterate(params,i):
-    a = 1./(5+i)
-    samples = sample_theta(params,20)
-    #H_val = np.array([H_i(samples,params,200,57,0),H_i(samples,params,200,57,1)])
-    H_val = H(params,200,57)
-    params = params-a*(np.dot(fisher_info(params),params)-H_val)
-    return params
-
 def H_i(samples,params,n,k,i):
-    H = 0
+    H_i = 0
     S = len(samples)
-    for theta in samples:
-        h = h_s(theta,n,k)*gradient_log_recognition(params,theta,i)
-        H+=h
-    H = H/S
-    #print "H"
-    #print H
-    return H
+    c = c_i(params,n,k,i,S)
+    inner = (h_s(samples,n,k)-c)*gradient_log_recognition(params,samples,i)
+    H_i = np.mean(inner)
+    return H_i
+
+def c_i(params,n,k,i,S):
+    first = np.zeros(S)
+    second = np.zeros(S)
+    samples = sample_theta(params,S)
+    first = h_s(samples,n,k)*gradient_log_recognition(params,samples,i)
+    second = gradient_log_recognition(params,samples,i)
+    return np.cov(first,second)[0][1]/np.cov(first,second)[1][1]
+
 
 def sample_theta(params,S):
     '''
     @param params: list of parameters for recognition model, gamma
     @param S: number of samples
     '''
-    print params[0],params[1]
+    #print params[0],params[1]
     return np.random.beta(params[0],params[1],size=S)
 
 def h_s(theta,n,k):
-    h_s = math.log(prior_density(theta))+log_likelihood(theta,n,k)
+    h_s = np.log(prior_density(theta))+log_likelihood(theta,n,k)
     #print h_s
     return h_s
 
@@ -113,14 +106,14 @@ def numerical_gradient_log_recognition(params,theta,i):
 
 if __name__=='__main__':
     params = np.array([30.,30.])
-    n = 200
-    k = 57
+    n = 10
+    k = 1
     true_alpha = k+1.
     true_beta = n-k+1.
     alpha = 0
     beta = 0
-    for i in range(1,1000):
-       params = iterate(params,i)
+    for i in range(1,10000):
+       params = iterate_nat_grad(params,i,n,k)
        if i%100==0:
            print "param estimates"
            print params
