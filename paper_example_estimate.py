@@ -2,6 +2,7 @@ import autograd.numpy as np
 from autograd import grad
 from scipy import special
 from scipy import stats
+from scipy import misc
 from matplotlib import pyplot as plt
 import seaborn as sns
 import math
@@ -74,26 +75,38 @@ def sample_theta(params,S):
     return np.random.beta(params[0],params[1],size=S)
 
 def h_s(theta,n,k):
-    h_s = np.log(prior_density(theta))+log_likelihood(theta,n,k)
+    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,k)
     #print h_s
     return h_s
 
 def abc_log_likelihood(samples,n,k):
-    N=500
+    N=25
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
     for s in range(S):
         theta = samples[s]
-        x = simulator(theta,n,N).reshape(len(data),N)
-        log_kernels = log_abc_kernel(x,data)
+        x = simulator(theta,n,N)
+        log_kernels = log_abc_kernel(x,k)
         ll[s] = misc.logsumexp(log_kernels)
         ll[s] = np.log(1./N)+ll[s]
     return ll
 
 def simulator(theta,n,N):
     return np.random.binomial(n,theta,size=N)
-    
+
+def log_abc_kernel(x,k):
+    '''
+    @summary: kernel density, we use normal here
+    @param y: observed data
+    @param x: simulator output, often the mean of kernel density
+    @param e: bandwith of density
+    '''
+    #e=np.std(x)/np.sqrt(len(data))
+    e = 0.5
+    Sx = x
+    Sy = k
+    return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 
 def log_likelihood(theta, n, k):
     return np.log(stats.binom.pmf(k,n,theta))
@@ -124,14 +137,14 @@ def numerical_gradient_log_recognition(params,theta,i):
 if __name__=='__main__':
     params = np.array([30.,30.])
     n = 10
-    k = 1
+    k = 3
     true_alpha = k+1.
     true_beta = n-k+1.
     alpha = 0
     beta = 0
-    for i in range(1,10000):
+    for i in range(1,1000):
        params = iterate_nat_grad(params,i,n,k)
-       if i%100==0:
+       if i%1==0:
            print "param estimates"
            print params
            alpha = params[0]
