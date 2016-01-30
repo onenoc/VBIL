@@ -62,7 +62,7 @@ def log_likelihood(theta,n,data):
     return n*np.log(theta)-theta*np.sum(data)
 
 def abc_log_likelihood(samples,n,data):
-    N=350
+    N=500
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
@@ -82,7 +82,7 @@ def log_abc_kernel(x,data):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.8
+    e = 0.05
     Sx = np.mean(x,0)
     Sy = np.mean(data)
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -110,7 +110,7 @@ def data_Sy(theta,n):
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,3000)
+    samples = sample_theta(params,1000)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
@@ -118,7 +118,8 @@ def iterate_nat_grad(params,data,i):
     return params
 
 if __name__=='__main__':
-    data = data_Sy(0.1,500)
+    true_lambda = 1
+    data = data_Sy(true_lambda,500)
     params = np.array([10.,10.])
     for i in range(5000):
         params = iterate_nat_grad(params,data,i)

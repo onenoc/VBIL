@@ -78,6 +78,23 @@ def h_s(theta,n,k):
     #print h_s
     return h_s
 
+def abc_log_likelihood(samples,n,k):
+    N=500
+    S = len(samples)
+    log_kernels = np.zeros(N)
+    ll = np.zeros(S)
+    for s in range(S):
+        theta = samples[s]
+        x = simulator(theta,n,N).reshape(len(data),N)
+        log_kernels = log_abc_kernel(x,data)
+        ll[s] = misc.logsumexp(log_kernels)
+        ll[s] = np.log(1./N)+ll[s]
+    return ll
+
+def simulator(theta,n,N):
+    return np.random.binomial(n,theta,size=N)
+    
+
 def log_likelihood(theta, n, k):
     return np.log(stats.binom.pmf(k,n,theta))
     
