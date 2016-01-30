@@ -2,6 +2,7 @@ import autograd.numpy as np
 from autograd import grad
 from scipy import special
 from scipy import stats
+from scipy.stats import beta
 from scipy import misc
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -43,7 +44,7 @@ def H(params,n,k):
 
 def iterate_nat_grad(params,i,n,k):
     a = 1./(5+i)
-    samples = sample_theta(params,1000)
+    samples = sample_theta(params,100)
     H_val = np.array([H_i(samples,params,n,k,0),H_i(samples,params,n,k,1)])
     H_true = H(params,n,k)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
@@ -75,12 +76,12 @@ def sample_theta(params,S):
     return np.random.beta(params[0],params[1],size=S)
 
 def h_s(theta,n,k):
-    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,k)
+    h_s = np.log(prior_density(theta))+log_likelihood(theta,n,k)
     #print h_s
     return h_s
 
 def abc_log_likelihood(samples,n,k):
-    N=25
+    N=100
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
@@ -103,7 +104,7 @@ def log_abc_kernel(x,k):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.5
+    e = 0.1
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -137,25 +138,26 @@ def numerical_gradient_log_recognition(params,theta,i):
 if __name__=='__main__':
     params = np.array([30.,30.])
     n = 10
-    k = 3
+    k = 4
     true_alpha = k+1.
     true_beta = n-k+1.
-    alpha = 0
-    beta = 0
+    e_alpha = 0
+    e_beta = 0
     for i in range(1,1000):
        params = iterate_nat_grad(params,i,n,k)
-       if i%1==0:
+       if i%10==0:
            print "param estimates"
            print params
-           alpha = params[0]
-           beta = params[1]
+           e_alpha = params[0]
+           e_beta = params[1]
            print "true params"
            print true_alpha, true_beta
-           print "mean is %f" % (alpha/(alpha+beta))
+           print "mean is %f" % (e_alpha/(e_alpha+e_beta))
            print "true mean is %f" % (true_alpha/(true_alpha+true_beta))
-    true_beta_samples = np.random.beta(k+1,n-k+1,100000)
-    recognition_beta_samples = np.random.beta(alpha,beta,100000)
-    sns.distplot(true_beta_samples)
-    sns.distplot(recognition_beta_samples)
+    x = np.linspace(0,1,100)
+    fig,ax=plt.subplots(1,1)
+    ax.plot(x, beta.pdf(x,true_alpha,true_beta),'r-', lw=5, alpha=0.6, label='true pdf',color='blue')
+    ax.plot(x, beta.pdf(x,params[0],params[1]),'r-', lw=5, alpha=0.6, label='VBIL pdf',color='green')
     plt.show()
+
 
