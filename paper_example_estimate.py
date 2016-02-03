@@ -5,7 +5,6 @@ from scipy import stats
 from scipy.stats import beta
 from scipy import misc
 from matplotlib import pyplot as plt
-import seaborn as sns
 import math
 
 def fisher_info(params):
@@ -42,27 +41,28 @@ def H(params,n,k):
     H[1]=(n-k)*special.polygamma(1,beta)-n*special.polygamma(1,alpha+beta)
     return H
 
-def iterate_nat_grad(params,i,n,k):
+def iterate_nat_grad(params,i,n,k,num_samples,num_particles):
+    convergence=0
     a = 1./(5+i)
-    samples = sample_theta(params,100)
-    H_val = np.array([H_i(samples,params,n,k,0),H_i(samples,params,n,k,1)])
+    samples = sample_theta(params,num_samples)
+    H_val = np.array([H_i(samples,params,n,k,0,num_particles),H_i(samples,params,n,k,1,num_particles)])
     H_true = H(params,n,k)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
-    return params
+    return params,convergence
 
-def H_i(samples,params,n,k,i):
+def H_i(samples,params,n,k,i,num_particles):
     H_i = 0
     S = len(samples)
-    c = c_i(params,n,k,i,S)
-    inner = (h_s(samples,n,k)-c)*gradient_log_recognition(params,samples,i)
+    c = c_i(params,n,k,i,S,num_particles)
+    inner = (h_s(samples,n,k,num_particles)-c)*gradient_log_recognition(params,samples,i)
     H_i = np.mean(inner)
     return H_i
 
-def c_i(params,n,k,i,S):
+def c_i(params,n,k,i,S,num_particles):
     first = np.zeros(S)
     second = np.zeros(S)
     samples = sample_theta(params,S)
-    first = h_s(samples,n,k)*gradient_log_recognition(params,samples,i)
+    first = h_s(samples,n,k,num_particles)*gradient_log_recognition(params,samples,i)
     second = gradient_log_recognition(params,samples,i)
     return np.cov(first,second)[0][1]/np.cov(first,second)[1][1]
 
@@ -75,13 +75,13 @@ def sample_theta(params,S):
     #print params[0],params[1]
     return np.random.beta(params[0],params[1],size=S)
 
-def h_s(theta,n,k):
-    h_s = np.log(prior_density(theta))+log_likelihood(theta,n,k)
+def h_s(theta,n,k,num_particles):
+    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,k,num_particles)
     #print h_s
     return h_s
 
-def abc_log_likelihood(samples,n,k):
-    N=100
+def abc_log_likelihood(samples,n,k,num_particles):
+    N=num_particles
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
@@ -135,17 +135,19 @@ def numerical_gradient_log_recognition(params,theta,i):
         f2 = stats.beta.logpdf(theta,alpha,beta+h)
     return (f2-f1)/h
 
-if __name__=='__main__':
-    params = np.array([30.,30.])
-    n = 10
-    k = 4
+def run_VBIL(start_params,n,k,num_samples,num_particles,num_iterations):
     true_alpha = k+1.
     true_beta = n-k+1.
     e_alpha = 0
     e_beta = 0
-    for i in range(1,1000):
-       params = iterate_nat_grad(params,i,n,k)
-       if i%10==0:
+    params = start_params
+    i=0
+    while convergence==0:
+        if i>1000:
+            convergence = 1
+    for i in range(1,num_iterations):
+       params = iterate_nat_grad(params,i,n,k,num_particles,num_iterations)
+       if i%100==0:
            print "param estimates"
            print params
            e_alpha = params[0]
@@ -154,10 +156,17 @@ if __name__=='__main__':
            print true_alpha, true_beta
            print "mean is %f" % (e_alpha/(e_alpha+e_beta))
            print "true mean is %f" % (true_alpha/(true_alpha+true_beta))
+    true_params = np.array([true_alpha, true_beta])
+    return params,true_params
+
+if __name__=='__main__':
+    params = np.random.uniform(10,100,2)
+    n=100
+    k=80
+    params,true_params=run_VBIL(params,n,k,500,100,1000)
     x = np.linspace(0,1,100)
-    fig,ax=plt.subplots(1,1)
-    ax.plot(x, beta.pdf(x,true_alpha,true_beta),'r-', lw=5, alpha=0.6, label='true pdf',color='blue')
-    ax.plot(x, beta.pdf(x,params[0],params[1]),'r-', lw=5, alpha=0.6, label='VBIL pdf',color='green')
+    plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
+    plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
+    plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
+    plt.legend(loc=2)
     plt.show()
-
-

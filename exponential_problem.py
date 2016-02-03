@@ -2,8 +2,10 @@ import numpy as np
 from scipy import special
 from scipy import stats
 from scipy import misc
+from scipy.stats import beta
+from scipy.stats import lognorm
+from scipy.stats import gamma
 from matplotlib import pyplot as plt
-import seaborn as sns
 import math
 
 def H_i(samples,params,data,i):
@@ -62,7 +64,7 @@ def log_likelihood(theta,n,data):
     return n*np.log(theta)-theta*np.sum(data)
 
 def abc_log_likelihood(samples,n,data):
-    N=500
+    N=350
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
@@ -82,7 +84,7 @@ def log_abc_kernel(x,data):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.05
+    e = 0.8
     Sx = np.mean(x,0)
     Sy = np.mean(data)
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -110,7 +112,7 @@ def data_Sy(theta,n):
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,1000)
+    samples = sample_theta(params,3000)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
@@ -118,10 +120,11 @@ def iterate_nat_grad(params,data,i):
     return params
 
 if __name__=='__main__':
-    true_lambda = 1
-    data = data_Sy(true_lambda,500)
-    params = np.array([10.,10.])
-    for i in range(5000):
+    t_lambda = 0.1
+    data = data_Sy(t_lambda,500)
+    #params = np.array([10.,10.])
+    params = np.random.uniform(10,100,2)
+    for i in range(2):
         params = iterate_nat_grad(params,data,i)
         if i%1==0:
             alpha = params[0]
@@ -131,11 +134,22 @@ if __name__=='__main__':
             print "estimated mean"
             print alpha/beta
             print "true params"
-            print 1+500, 1+np.sum(data)
+            print t_lambda+500, t_lambda+np.sum(data)
             print "true mean"
-            print (1+500)/(1+np.sum(data))
-    true_gamma_samples = np.random.gamma(501,1/(1+np.mean(data)*500),100000)
+            print (t_lambda+500)/(t_lambda+np.sum(data))
+    print "final params"
+    x = np.linspace(0,1,100)
+    true_params = np.array([t_lambda+500,t_lambda+np.sum(data)])
+    print true_params
+    plt.plot(x, gamma.pdf(x,true_params[0],scale=1/true_params[1]),'--', lw=2.5, label='true',color='red')
+    plt.plot(x, gamma.pdf(x,params[0],scale=1/params[1]),'r-', label='VBIL',color='green')
+    #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
+    plt.legend(loc=2)
+    plt.show()
+    '''
+    true_gamma_samples = np.random.gamma(500+t_lambda,1/(t_lambda+np.mean(data)*500),100000)
     recognition_gamma_samples = np.random.gamma(params[0],1/params[1],100000)
     sns.distplot(true_gamma_samples)
     sns.distplot(recognition_gamma_samples)
     plt.show()
+    '''
