@@ -64,13 +64,14 @@ def log_likelihood(theta,n,data):
     return n*np.log(theta)-theta*np.sum(data)
 
 def abc_log_likelihood(samples,n,data):
-    N=350
+    N=500
+    M = len(data)
     S = len(samples)
     log_kernels = np.zeros(N)
     ll = np.zeros(S)
     for s in range(S):
         theta = samples[s]
-        x = simulator(theta,N).reshape(len(data),N)
+        x = simulator(theta,N,M).reshape(len(data),N)
         log_kernels = log_abc_kernel(x,data)
         ll[s] = misc.logsumexp(log_kernels)
         ll[s] = np.log(1./N)+ll[s]
@@ -84,7 +85,7 @@ def log_abc_kernel(x,data):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.8
+    e = 0.05
     Sx = np.mean(x,0)
     Sy = np.mean(data)
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -92,12 +93,12 @@ def log_abc_kernel(x,data):
     #return np.log(1/(e*np.sqrt(2*np.pi)))-(Sy-Sx)**2/(2*e**2)
 
 #CORRECT
-def simulator(theta,N):
+def simulator(theta,N,M):
     '''
     @given a parameter theta, simulate
     CORRECT
     '''
-    w = np.random.exponential(1./theta,500*N)
+    w = np.random.exponential(1./theta,M*N)
     return w
 
 def h_s(theta,n,data):
@@ -108,25 +109,33 @@ def h_s(theta,n,data):
     return h_s
 
 def data_Sy(theta,n):
-    return np.random.exponential(1/theta,n)
+    #return np.random.exponential(1/theta,n)
+    return 3.0*np.ones(n)
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,3000)
+    samples = sample_theta(params,300)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
     return params
 
+def loglognormal_np( logx, mu, stddev ):
+  log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )
+  return log_pdf
+
+
+
 if __name__=='__main__':
-    t_lambda = 0.1
-    data = data_Sy(t_lambda,500)
-    #params = np.array([10.,10.])
-    params = np.random.uniform(10,100,2)
-    for i in range(2):
+    t_lambda = 1./3
+    M = 15
+    data = data_Sy(t_lambda,M)
+    params = np.array([10.,10.])
+    #params = np.random.uniform(10,100,2)
+    for i in range(500):
         params = iterate_nat_grad(params,data,i)
-        if i%1==0:
+        if i%10==0:
             alpha = params[0]
             beta = params[1]
             print "estimated params"
@@ -134,16 +143,21 @@ if __name__=='__main__':
             print "estimated mean"
             print alpha/beta
             print "true params"
-            print t_lambda+500, t_lambda+np.sum(data)
+            print t_lambda+M, t_lambda+np.sum(data)
             print "true mean"
-            print (t_lambda+500)/(t_lambda+np.sum(data))
-    print "final params"
+            print (t_lambda+M)/(t_lambda+np.sum(data))
+    print 'final params'
+    print params
     x = np.linspace(0,1,100)
-    true_params = np.array([t_lambda+500,t_lambda+np.sum(data)])
+    true_params = np.array([t_lambda+M,t_lambda+np.sum(data)])
+    print 'true params'
     print true_params
     plt.plot(x, gamma.pdf(x,true_params[0],scale=1/true_params[1]),'--', lw=2.5, label='true',color='red')
     plt.plot(x, gamma.pdf(x,params[0],scale=1/params[1]),'r-', label='VBIL',color='green')
-    #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
+    lognormal=np.exp(loglognormal_np(np.log(x),-0.984175,0.236906)
+)
+
+    plt.plot(x,lognormal,'b',label='AD',color='blue')
     plt.legend(loc=2)
     plt.show()
     '''

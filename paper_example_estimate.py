@@ -42,13 +42,12 @@ def H(params,n,k):
     return H
 
 def iterate_nat_grad(params,i,n,k,num_samples,num_particles):
-    convergence=0
-    a = 1./(5+i)
+    a = 1./(50000+i)
     samples = sample_theta(params,num_samples)
     H_val = np.array([H_i(samples,params,n,k,0,num_particles),H_i(samples,params,n,k,1,num_particles)])
     H_true = H(params,n,k)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
-    return params,convergence
+    return params
 
 def H_i(samples,params,n,k,i,num_particles):
     H_i = 0
@@ -72,7 +71,6 @@ def sample_theta(params,S):
     @param params: list of parameters for recognition model, gamma
     @param S: number of samples
     '''
-    #print params[0],params[1]
     return np.random.beta(params[0],params[1],size=S)
 
 def h_s(theta,n,k,num_particles):
@@ -104,7 +102,7 @@ def log_abc_kernel(x,k):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.1
+    e = 0.01
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -142,12 +140,15 @@ def run_VBIL(start_params,n,k,num_samples,num_particles,num_iterations):
     e_beta = 0
     params = start_params
     i=0
+    '''
+    convergence = 0
     while convergence==0:
         if i>1000:
             convergence = 1
+    '''
     for i in range(1,num_iterations):
-       params = iterate_nat_grad(params,i,n,k,num_particles,num_iterations)
-       if i%100==0:
+       params = iterate_nat_grad(params,i,n,k,num_samples,num_particles)
+       if i%1==0:
            print "param estimates"
            print params
            e_alpha = params[0]
@@ -160,13 +161,15 @@ def run_VBIL(start_params,n,k,num_samples,num_particles,num_iterations):
     return params,true_params
 
 if __name__=='__main__':
+    #note that for n=100,k=80, we use 500,100,1000
+    # for n=100,k=20, we use 500,300,300
     params = np.random.uniform(10,100,2)
-    n=100
-    k=80
-    params,true_params=run_VBIL(params,n,k,500,100,1000)
+    n=10
+    k=2
+    params,true_params=run_VBIL(params,n,k,50,30,1000)
     x = np.linspace(0,1,100)
     plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
     plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
-    plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
-    plt.legend(loc=2)
+    #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
+    plt.legend(loc=1)
     plt.show()
