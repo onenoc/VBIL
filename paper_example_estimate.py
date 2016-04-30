@@ -42,7 +42,7 @@ def H(params,n,k):
     return H
 
 def iterate_nat_grad(params,i,n,k,num_samples,num_particles):
-    a = 1./(50000+i)
+    a = 1./(5+i)
     samples = sample_theta(params,num_samples)
     H_val = np.array([H_i(samples,params,n,k,0,num_particles),H_i(samples,params,n,k,1,num_particles)])
     H_true = H(params,n,k)
@@ -102,7 +102,7 @@ def log_abc_kernel(x,k):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.01
+    e = 0.5
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -164,12 +164,14 @@ if __name__=='__main__':
     #note that for n=100,k=80, we use 500,100,1000
     # for n=100,k=20, we use 500,300,300
     params = np.random.uniform(10,100,2)
-    n=10
-    k=2
-    params,true_params=run_VBIL(params,n,k,50,30,1000)
+    n=100
+    k=20
+    #samples, particles, iterations
+    params,true_params=run_VBIL(params,n,k,500,300,100)
     x = np.linspace(0,1,100)
     plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
     plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
     #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
-    plt.legend(loc=1)
+    plt.legend(loc=2)
+    plt.title('Bernoulli Problem M=100,k=80')
     plt.show()

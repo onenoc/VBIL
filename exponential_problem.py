@@ -85,7 +85,7 @@ def log_abc_kernel(x,data):
     @param e: bandwith of density
     '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.05
+    e = 0.8
     Sx = np.mean(x,0)
     Sy = np.mean(data)
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -110,11 +110,11 @@ def h_s(theta,n,data):
 
 def data_Sy(theta,n):
     #return np.random.exponential(1/theta,n)
-    return 3.0*np.ones(n)
+    return 10.0*np.ones(n)
 
 def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
-    samples = sample_theta(params,300)
+    samples = sample_theta(params,500)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
     #print H_val
     #print inv_fisher(params)
@@ -122,18 +122,16 @@ def iterate_nat_grad(params,data,i):
     return params
 
 def loglognormal_np( logx, mu, stddev ):
-  log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )
+  log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
   return log_pdf
 
-
-
 if __name__=='__main__':
-    t_lambda = 1./3
+    t_lambda = 1./10
     M = 15
     data = data_Sy(t_lambda,M)
-    params = np.array([10.,10.])
-    #params = np.random.uniform(10,100,2)
-    for i in range(500):
+    #params = np.array([10.,10.])
+    params = np.random.uniform(10,100,2)
+    for i in range(250):
         params = iterate_nat_grad(params,data,i)
         if i%10==0:
             alpha = params[0]
@@ -154,11 +152,12 @@ if __name__=='__main__':
     print true_params
     plt.plot(x, gamma.pdf(x,true_params[0],scale=1/true_params[1]),'--', lw=2.5, label='true',color='red')
     plt.plot(x, gamma.pdf(x,params[0],scale=1/params[1]),'r-', label='VBIL',color='green')
-    lognormal=np.exp(loglognormal_np(np.log(x),-0.984175,0.236906)
+    lognormal=np.exp(loglognormal_np(np.log(x),-2.2787,0.208157)
 )
 
     plt.plot(x,lognormal,'b',label='AD',color='blue')
-    plt.legend(loc=2)
+    plt.legend(loc=1)
+    plt.title('Exponential Problem for Sy=10,M=15')
     plt.show()
     '''
     true_gamma_samples = np.random.gamma(500+t_lambda,1/(t_lambda+np.mean(data)*500),100000)
