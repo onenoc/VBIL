@@ -7,6 +7,9 @@ from scipy import misc
 from matplotlib import pyplot as plt
 import math
 
+all_gradients = []
+lower_bounds = []
+
 def fisher_info(params):
     alpha = params[0]
     beta = params[1]
@@ -47,6 +50,13 @@ def iterate_nat_grad(params,i,n,k,num_samples,num_particles):
     H_val = np.array([H_i(samples,params,n,k,0,num_particles),H_i(samples,params,n,k,1,num_particles)])
     H_true = H(params,n,k)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
+    all_gradients.append(params-np.dot(inv_fisher(params),H_val))
+    #lower bound
+    #print samples, params[0], params[1]
+    #lower_bound =np.mean(h_s(samples,n,k,num_particles)-np.log(stats.beta.pdf(samples,params[0],params[1])))
+    #lower_bounds.append(lower_bound)
+    #print 'lower bound'
+    #print lower_bound
     return params
 
 def H_i(samples,params,n,k,i,num_particles):
@@ -169,9 +179,16 @@ if __name__=='__main__':
     #samples, particles, iterations
     params,true_params=run_VBIL(params,n,k,500,300,100)
     x = np.linspace(0,1,100)
-    plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
-    plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
+    #plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
+    #plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
     #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
-    plt.legend(loc=2)
-    plt.title('Bernoulli Problem M=100,k=80')
+    #plt.legend(loc=2)
+    #plt.title('Bernoulli Problem M=100,k=80')
+    all_gradients = np.asarray(all_gradients)
+    running_var = []
+    for i in range(1,len(all_gradients)):
+        running_var.append(np.var(all_gradients[0:i])/i)
+    plt.hist(all_gradients)
+    plt.show()
+
     plt.show()

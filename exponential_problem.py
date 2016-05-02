@@ -8,6 +8,9 @@ from scipy.stats import gamma
 from matplotlib import pyplot as plt
 import math
 
+all_gradients = []
+
+
 def H_i(samples,params,data,i):
     n=len(data)
     H_i = 0
@@ -116,9 +119,8 @@ def iterate_nat_grad(params,data,i):
     a = 1./(5+i)
     samples = sample_theta(params,500)
     H_val = np.array([H_i(samples,params,data,0),H_i(samples,params,data,1)])
-    #print H_val
-    #print inv_fisher(params)
     params = params-a*(params-np.dot(inv_fisher(params),H_val))
+    all_gradients.append(params-np.dot(inv_fisher(params),H_val))
     return params
 
 def loglognormal_np( logx, mu, stddev ):
@@ -150,15 +152,20 @@ if __name__=='__main__':
     true_params = np.array([t_lambda+M,t_lambda+np.sum(data)])
     print 'true params'
     print true_params
-    plt.plot(x, gamma.pdf(x,true_params[0],scale=1/true_params[1]),'--', lw=2.5, label='true',color='red')
-    plt.plot(x, gamma.pdf(x,params[0],scale=1/params[1]),'r-', label='VBIL',color='green')
+    #plt.plot(x, gamma.pdf(x,true_params[0],scale=1/true_params[1]),'--', lw=2.5, label='true',color='red')
+    #plt.plot(x, gamma.pdf(x,params[0],scale=1/params[1]),'r-', label='VBIL',color='green')
     lognormal=np.exp(loglognormal_np(np.log(x),-2.2787,0.208157)
 )
-
-    plt.plot(x,lognormal,'b',label='AD',color='blue')
-    plt.legend(loc=1)
-    plt.title('Exponential Problem for Sy=10,M=15')
+    all_gradients = np.asarray(all_gradients)
+    running_var = []
+    for i in range(1,len(all_gradients)):
+        running_var.append(np.var(all_gradients[0:i]))
+    plt.plot(running_var)
     plt.show()
+    #plt.plot(x,lognormal,'b',label='AD',color='blue')
+    #plt.legend(loc=1)
+    #plt.title('Exponential Problem for Sy=10,M=15')
+    #plt.show()
     '''
     true_gamma_samples = np.random.gamma(500+t_lambda,1/(t_lambda+np.mean(data)*500),100000)
     recognition_gamma_samples = np.random.gamma(params[0],1/params[1],100000)
