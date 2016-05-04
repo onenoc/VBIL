@@ -20,8 +20,8 @@ def iterate(params,num_samples,num_particles,n,k,i,m,v):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
-    #params = params+a*m_h/(np.sqrt(v_h)+e)
-    params = params+a*g
+    params = params+a*m_h/(np.sqrt(v_h)+e)
+    #params = params+a*g
     return params,m,v
 
 def grad_KL(params, num_samples, num_particles, n,k):
@@ -103,6 +103,8 @@ def log_abc_kernel(x,k):
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 
 def c_i(params,n,k,i,S,num_particles):
+    if S==1:
+        return 0
     first = np.zeros(S)
     second = np.zeros(S)
     samples = sample_theta(params,S)
@@ -138,7 +140,7 @@ if __name__=='__main__':
 
 if __name__=='__main__':
     n = 100
-    k = 20
+    k = 80
     params = np.random.uniform(10,100,2)
     m = np.array([0.,0.])
     v = np.array([0.,0.])
@@ -166,3 +168,13 @@ if __name__=='__main__':
     plt.legend()
     plt.show()
 
+
+#    num_samples = 1
+#    num_particles = 1
+#    params = np.array([10,10])
+#    for i in range(100):
+#        all_gradients.append(grad_KL(params, num_samples,num_particles,n,k)[1])
+#    print all_gradients
+#    plt.hist(all_gradients,color='orange')
+#    plt.title('BBVI with 10 samples, 10 particles, alpha-beta after 2k runs')
+#    plt.show()
