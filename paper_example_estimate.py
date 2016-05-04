@@ -63,7 +63,7 @@ def H_i(samples,params,n,k,i,num_particles):
     H_i = 0
     S = len(samples)
     c = c_i(params,n,k,i,S,num_particles)
-    inner = (h_s(samples,n,k,num_particles)-c)*gradient_log_recognition(params,samples,i)
+    inner = (h_s(samples,n,k,num_particles)+c)*gradient_log_recognition(params,samples,i)
     H_i = np.mean(inner)
     return H_i
 
@@ -170,25 +170,43 @@ def run_VBIL(start_params,n,k,num_samples,num_particles,num_iterations):
     true_params = np.array([true_alpha, true_beta])
     return params,true_params
 
+def calculate_gradient(params, n,k,num_samples,num_particles):
+    samples = sample_theta(params,num_samples)
+    H_val = np.array([H_i(samples,params,n,k,0,num_particles),H_i(samples,params,n,k,1,num_particles)])
+    H_true = H(params,n,k)
+    return params-np.dot(inv_fisher(params),H_val)
+
 if __name__=='__main__':
     #note that for n=100,k=80, we use 500,100,1000
     # for n=100,k=20, we use 500,300,300
     params = np.random.uniform(10,100,2)
     n=100
     k=20
-    #samples, particles, iterations
+    ##samples, particles, iterations
     params,true_params=run_VBIL(params,n,k,500,300,100)
     x = np.linspace(0,1,100)
-    #plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
-    #plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
-    #plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
-    #plt.legend(loc=2)
-    #plt.title('Bernoulli Problem M=100,k=80')
-    all_gradients = np.asarray(all_gradients)
-    running_var = []
-    for i in range(1,len(all_gradients)):
-        running_var.append(np.var(all_gradients[0:i])/i)
-    plt.hist(all_gradients)
+    plt.plot(x, beta.pdf(x,true_params[0],true_params[1]),'--', lw=2.5, label='true',color='red')
+    plt.plot(x, beta.pdf(x,params[0],params[1]),'r-', label='VBIL',color='green')
+    plt.plot(x, kumaraswamy_pdf(x,params_ABC),'r-', label='AD',color='blue')
+    plt.legend(loc=2)
+    plt.title('Bernoulli Problem M=100,k=80')
     plt.show()
 
+    #all_gradients = np.asarray(all_gradients)
+    #running_var = []
+    #for i in range(1,len(all_gradients)):
+    #    running_var.append(np.var(all_gradients[0:i])/i)
+    #plt.hist(all_gradients)
+    #plt.show()
+
+    #plt.show()
+
+    params = np.array([21,81])
+    num_samples = 10
+    num_particles = 10
+    for i in range(100):
+        params = np.random.uniform(10,100,2)
+        all_gradients.append(calculate_gradient(params, n,k,num_samples,num_particles)[0])
+    plt.hist(all_gradients,color='orange')
+    plt.title('BBVI/VBIL with 10 samples, 10 particles, alpha=21, beta=81')
     plt.show()
