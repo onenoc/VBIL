@@ -110,7 +110,7 @@ def log_abc_kernel(x):
         @param e: bandwith of density
         '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.5
+    e = 0.2
     Sx = x
     Sy = trueData()
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -146,7 +146,7 @@ def log_prior_density(theta):
 #correct
 def trueData():
     np.random.seed(5)
-    return np.mean(np.random.exponential(1.25,M))
+    return np.mean(np.random.exponential(0.75,M))
 
 #Correct
 def generate_lognormal(params,S):
