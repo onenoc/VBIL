@@ -10,7 +10,7 @@ import math
 all_gradients = []
 lower_bounds = []
 M=500
-
+iteration = 1
 def iterate(params,num_samples,num_particles,i,m,v):
     b_1 = 0.9
     b_2 = 0.999
@@ -110,7 +110,7 @@ def log_abc_kernel(x):
         @param e: bandwith of density
         '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.2
+    e = max(10./iteration, 0.005)
     Sx = x
     Sy = trueData()
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -167,6 +167,7 @@ if __name__=='__main__':
     lower_bounds = []
     for i in range(500):
         params,m,v = iterate(params,20,20,i,m,v)
+        iteration +=1
         if i%100==0:
             print params
     print params
@@ -181,7 +182,7 @@ if __name__=='__main__':
     fig, ax = plt.subplots(1, 1)
 #plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
     plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='kuma pdf',color='green')
-    plt.plot(x,1/stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)))
+#plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)))
     plt.legend()
     plt.show()
 
