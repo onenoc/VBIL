@@ -95,7 +95,7 @@ def abc_log_likelihood(samples,num_particles):
 #correct
 def simulator(theta,N):
     #get 500*N exponentials
-    exponentials = np.random.exponential(theta,size=N*M)
+    exponentials = np.random.exponential(1/theta,size=N*M)
     #reshape to Nx500
     exponentials = np.reshape(exponentials,(N,M))
     #get means of the rows
@@ -110,7 +110,7 @@ def log_abc_kernel(x):
         @param e: bandwith of density
         '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = max(10./iteration, 0.005)
+    e = max(30./np.sqrt(iteration),0.01)
     Sx = x
     Sy = trueData()
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -146,7 +146,7 @@ def log_prior_density(theta):
 #correct
 def trueData():
     np.random.seed(5)
-    return np.mean(np.random.exponential(0.75,M))
+    return np.mean(np.random.exponential(2,M))
 
 #Correct
 def generate_lognormal(params,S):
@@ -166,13 +166,13 @@ if __name__=='__main__':
     v = np.array([0.,0.])
     lower_bounds = []
     for i in range(500):
-        params,m,v = iterate(params,20,20,i,m,v)
+        params,m,v = iterate(params,50,50,i,m,v)
         iteration +=1
         if i%100==0:
             print params
     print params
     print "true mean"
-    print (trueData()*M+1)/(M+1.)
+    print (M+1.)/(trueData()*M+1)
     samples = generate_lognormal(params,10000)
     print "estimated mean"
     print np.mean(samples)
@@ -181,8 +181,8 @@ if __name__=='__main__':
     x = np.linspace(0,3,100)
     fig, ax = plt.subplots(1, 1)
 #plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='kuma pdf',color='green')
-#plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)))
+    plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='variational',color='green')
+    plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)),label='true exponential')
     plt.legend()
     plt.show()
 
