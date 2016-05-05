@@ -30,10 +30,10 @@ def grad_KL(params, num_samples, num_particles):
     samples = sample_theta(params,S)
     #initialize KL to be this
     KL1 = gradient_log_variational(params,samples,0)
-    KL1 *= log_variational(params,samples)-h_s(samples, num_particles)#-c_i(params,0,S,num_particles)
+    KL1 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,0,S,num_particles)
     KL1 = np.sum(KL1)/S
     KL2 = gradient_log_variational(params,samples,1)
-    KL2 *= log_variational(params,samples)-h_s(samples, num_particles)#-c_i(params,1,S,num_particles)
+    KL2 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,1,S,num_particles)
     KL2 = np.sum(KL2)/S
     KL = np.array([KL1,KL2])
     return KL
@@ -47,6 +47,7 @@ def log_variational(params, theta):
     x = theta
     return loglognormal_np(np.log(x),mu,sigma)
 
+#correct
 def loglognormal_np( logx, mu, stddev ):
   log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
   return log_pdf
@@ -73,9 +74,11 @@ def gradient_check():
 
 def h_s(theta,num_particles):
     h_s = log_prior_density(theta)+abc_log_likelihood(theta,num_particles)
+    #h_s = abc_log_likelihood(theta,num_particles)
     #print h_s
     return h_s
 
+#seems correct
 def abc_log_likelihood(samples,num_particles):
     N=num_particles
     S = len(samples)
@@ -99,6 +102,7 @@ def simulator(theta,N):
     summaries = np.mean(exponentials,1)
     return summaries
 
+#gets max likelihood at right point
 def log_abc_kernel(x):
     '''
         @summary: kernel density, we use normal here
@@ -132,13 +136,17 @@ def sample_theta(params,S):
 
 #Correct
 def log_prior_density(theta):
-    params = np.array([0,1])
+    alpha = 2
+    beta = 0.5
+    mu = np.log(alpha/beta)
+    sigma = np.log(np.sqrt(alpha/(beta**2)))
+    params = np.array([mu,sigma])
     return log_variational(params, theta)
 
 #correct
 def trueData():
     np.random.seed(5)
-    return np.mean(np.random.exponential(1,M))
+    return np.mean(np.random.exponential(1.25,M))
 
 #Correct
 def generate_lognormal(params,S):
@@ -149,37 +157,31 @@ def generate_lognormal(params,S):
     return X
 
 if __name__=='__main__':
-    #print log_prior_density(1)
-    theta = np.array([1])
-    num_particles = 10
-    print log_prior_density(theta)
-#    num_samples = 800
-#    num_particles = 800
-#    params = np.zeros(2)
-#    params[0] = np.random.uniform(0,1)
-#    params[1] = np.random.uniform(0,1)
-#    m = np.array([0.,0.])
-#    v = np.array([0.,0.])
-#    lower_bounds = []
-#    for i in range(500):
-#        params,m,v = iterate(params,10,10,i,m,v)
-#        if i%100==0:
-#            print params
-#    print params
-#    print "true mean"
-#    print (M+1.)/(trueData()*M+1)
-#    samples = generate_lognormal(params,10000)
-#    print "estimated mean"
-#    print np.mean(samples)
-#    mu = params[0]
-#    sigma = params[1]
-#    x = np.linspace(0,3,100)
-#    fig, ax = plt.subplots(1, 1)
-#    #plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
-#    #plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-##plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-#    plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='kuma pdf',color='green')
-#    plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)))
-#    plt.legend()
-#    plt.show()
+    print trueData()
+#Problem: I'm estimating the mean, but the true posterior is the rate
+    params = np.zeros(2)
+    params[0] = np.random.uniform(0,1)
+    params[1] = np.random.uniform(0,1)
+    m = np.array([0.,0.])
+    v = np.array([0.,0.])
+    lower_bounds = []
+    for i in range(500):
+        params,m,v = iterate(params,20,20,i,m,v)
+        if i%100==0:
+            print params
+    print params
+    print "true mean"
+    print (trueData()*M+1)/(M+1.)
+    samples = generate_lognormal(params,10000)
+    print "estimated mean"
+    print np.mean(samples)
+    mu = params[0]
+    sigma = params[1]
+    x = np.linspace(0,3,100)
+    fig, ax = plt.subplots(1, 1)
+#plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
+    plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='kuma pdf',color='green')
+    plt.plot(x,1/stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)))
+    plt.legend()
+    plt.show()
 
