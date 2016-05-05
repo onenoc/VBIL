@@ -21,7 +21,7 @@ def iterate(params,num_samples,num_particles,n,k,i,m,v):
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
     params = params+a*m_h/(np.sqrt(v_h)+e)
-    #params = params+a*g
+    params = params+a*g
     return params,m,v
 
 def grad_KL(params, num_samples, num_particles, n,k):
@@ -103,6 +103,7 @@ def log_abc_kernel(x,k):
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 
 def c_i(params,n,k,i,S,num_particles):
+    return 0
     if S==1:
         return 0
     first = np.zeros(S)
@@ -139,39 +140,40 @@ if __name__=='__main__':
     print grad_KL(params, num_samples,num_particles,n,k)
 
 if __name__=='__main__':
-    n = 100
-    k = 80
-    params = np.random.uniform(10,100,2)
-    m = np.array([0.,0.])
-    v = np.array([0.,0.])
-    lower_bounds = []
-    for i in range(2000):
-        params,m,v = iterate(params,1,1,n,k,i,m,v)
-        if i%100==0:
-            print params
-    print params
+    print gradient_check()
+    #n = 100
+    #k = 80
+    #params = np.random.uniform(10,100,2)
+    #m = np.array([0.,0.])
+    #v = np.array([0.,0.])
+    #lower_bounds = []
+    #for i in range(2000):
+    #    params,m,v = iterate(params,10,10,n,k,i,m,v)
+    #    if i%100==0:
+    #        print params
+    #print params
 
-    print "true mean"
-    print (k+1.)/(n+2.)
-    U = np.random.uniform(0,1,100000)
-    samples = generate_kumaraswamy(params,U)
-    print "estimated mean"
-    print np.mean(samples)
-    a = k+1
-    b = n-k+1
-    x = np.linspace(0,1,100)
-    fig, ax = plt.subplots(1, 1)
-    #plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
-    #plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-    plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
-    plt.legend()
-    plt.show()
+    #print "true mean"
+    #print (k+1.)/(n+2.)
+    #U = np.random.uniform(0,1,100000)
+    #samples = generate_kumaraswamy(params,U)
+    #print "estimated mean"
+    #print np.mean(samples)
+    #a = k+1
+    #b = n-k+1
+    #x = np.linspace(0,1,100)
+    #fig, ax = plt.subplots(1, 1)
+    ##plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
+    ##plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
+    #plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
+    #plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
+    #plt.legend()
+    #plt.show()
 
-
+#
 #    num_samples = 1
 #    num_particles = 1
-#    params = np.array([10,10])
+#    params = np.array([3,100])
 #    for i in range(100):
 #        all_gradients.append(grad_KL(params, num_samples,num_particles,n,k)[1])
 #    print all_gradients
