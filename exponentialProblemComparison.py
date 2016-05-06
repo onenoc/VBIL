@@ -4,12 +4,14 @@ from scipy import special
 from scipy import stats
 from scipy.stats import beta, gamma
 from scipy import misc
+import seaborn as sns
 from matplotlib import pyplot as plt
 import math
+import pickle
 
 all_gradients = []
 lower_bounds = []
-M=500
+M=15
 iteration = 1
 def iterate(params,num_samples,num_particles,i,m,v):
     b_1 = 0.9
@@ -49,8 +51,8 @@ def log_variational(params, theta):
 
 #correct
 def loglognormal_np( logx, mu, stddev ):
-  log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
-  return log_pdf
+    log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
+    return log_pdf
 
 #correct
 def gradient_log_variational(params,theta, i):
@@ -86,8 +88,8 @@ def abc_log_likelihood(samples,num_particles):
     ll = np.zeros(S)
     for s in range(S):
         theta = samples[s]
-        x = simulator(theta,N)
-        log_kernels = log_abc_kernel(x)
+        x,std = simulator(theta,N)
+        log_kernels = log_abc_kernel(x,std)
         ll[s] = misc.logsumexp(log_kernels)
         ll[s] = np.log(1./N)+ll[s]
     return ll
@@ -100,17 +102,20 @@ def simulator(theta,N):
     exponentials = np.reshape(exponentials,(N,M))
     #get means of the rows
     summaries = np.mean(exponentials,1)
-    return summaries
+    std = np.std(exponentials,1)
+    return summaries, std
 
 #gets max likelihood at right point
-def log_abc_kernel(x):
+def log_abc_kernel(x,std):
     '''
         @summary: kernel density, we use normal here
         @param x: simulator output, often the mean of kernel density
         @param e: bandwith of density
         '''
-    #e=np.std(x)/np.sqrt(len(data))
-    e = max(30./np.sqrt(iteration),0.01)
+    
+    e=std[0]/np.sqrt(M)
+    #e = max(30./iteration,0.03)
+    #e = 1
     Sx = x
     Sy = trueData()
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -145,8 +150,10 @@ def log_prior_density(theta):
 
 #correct
 def trueData():
-    np.random.seed(5)
-    return np.mean(np.random.exponential(2,M))
+    #np.random.seed(5)
+    #true = np.mean(np.random.exponential(20,M))
+    #np.random.seed()
+    return 1
 
 #Correct
 def generate_lognormal(params,S):
@@ -156,33 +163,53 @@ def generate_lognormal(params,S):
     X = np.exp(Y)
     return X
 
+
+
 if __name__=='__main__':
-    print trueData()
-#Problem: I'm estimating the mean, but the true posterior is the rate
-    params = np.zeros(2)
-    params[0] = np.random.uniform(0,1)
-    params[1] = np.random.uniform(0,1)
-    m = np.array([0.,0.])
-    v = np.array([0.,0.])
-    lower_bounds = []
-    for i in range(500):
-        params,m,v = iterate(params,50,50,i,m,v)
-        iteration +=1
-        if i%100==0:
-            print params
-    print params
-    print "true mean"
-    print (M+1.)/(trueData()*M+1)
-    samples = generate_lognormal(params,10000)
-    print "estimated mean"
-    print np.mean(samples)
-    mu = params[0]
-    sigma = params[1]
-    x = np.linspace(0,3,100)
-    fig, ax = plt.subplots(1, 1)
-#plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='variational',color='green')
-    plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)),label='true exponential')
+    #print trueData()
+    #params = np.zeros(2)
+    #params[0] = np.random.uniform(0,1)
+    #params[1] = np.random.uniform(0,1)
+    #m = np.array([0.,0.])
+    #v = np.array([0.,0.])
+    #lower_bounds = []
+    #for i in range(500):
+    #    params,m,v = iterate(params,50,50,i,m,v)
+    #    iteration +=1
+    #    if i%100==0:
+    #        print params
+    #print params
+    #print "true mean"
+    #print (M+1.)/(trueData()*M+1)
+    #samples = generate_lognormal(params,10000)
+    #print "estimated mean"
+    #print np.mean(samples)
+    #mu = params[0]
+    #sigma = params[1]
+    #x = np.linspace(0,3,100)
+    ##fig, ax = plt.subplots(1, 1)
+#plt#.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
+    ##plt.plot(x,np.exp(log_variational(params,x)),'r-', lw=5, label='variational',color='green')
+    #plt.plot(x,stats.gamma.pdf(x,M+1,scale=1/(trueData()*M+1)),label='true exponential')
+    #plt.legend()
+    #plt.show()
+
+    params = np.array([0.223545, 0.289477])
+    #params = np.array([5,5])
+    ted_gradients = pickle.load(open('gradients.pkl','rb'))
+    num_samples = 10
+    num_particles = 1
+    for i in range(1000):
+        all_gradients.append(grad_KL(params, num_samples,num_particles)[1])
+    ted_gradients = np.asarray(ted_gradients)
+    all_gradients = np.asarray(all_gradients)
+    #plt.hist(all_gradients,color='orange')
+    #sns.distplot(ted_gradients,hist=False)
+    sns.kdeplot(ted_gradients,label='AVABC')
+    #sns.distplot(all_gradients,hist=False)
+    sns.kdeplot(all_gradients,label='VBIL')
+    #print reduce(lambda x, y: x + y, all_gradients) / len(all_gradients)
+    #plt.hist(ted_gradients)
     plt.legend()
     plt.show()
 
