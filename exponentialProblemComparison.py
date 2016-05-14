@@ -17,7 +17,9 @@ def iterate(params,num_samples,num_particles,i,m,v):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    g = -grad_KL(params, num_samples,num_particles)
+    samples = sample_theta(params,num_samples)
+    LB = lower_bound(params,samples,num_particles)
+    g = -grad_KL(params, samples,num_particles,LB)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
@@ -27,18 +29,32 @@ def iterate(params,num_samples,num_particles,i,m,v):
     #params = params+a*g
     return params,m,v
 
-def grad_KL(params, num_samples, num_particles):
-    S = num_samples
-    samples = sample_theta(params,S)
+def lower_bound(params,samples,num_particles):
+    S = len(samples)
+    return (log_variational(params,samples)-h_s(samples, num_particles))/S
+
+def grad_KL(params, samples, num_particles,LB):
+    S = len(samples)
     #initialize KL to be this
-    KL1 = gradient_log_variational(params,samples,0)
-    KL1 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,0,S,num_particles)
-    KL1 = np.sum(KL1)/S
-    KL2 = gradient_log_variational(params,samples,1)
-    KL2 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,1,S,num_particles)
-    KL2 = np.sum(KL2)/S
+    KL1 = gradient_log_variational(params,samples,0)*(LB-c_i(params,0,S,num_particles)/S)
+    KL1 = np.sum(KL1)
+    KL2 = gradient_log_variational(params,samples,1)*(LB-c_i(params,1,S,num_particles)/S)
+    KL2 = np.sum(KL2)
     KL = np.array([KL1,KL2])
     return KL
+
+#def grad_KL(params, num_samples, num_particles):
+#    S = num_samples
+#    samples = sample_theta(params,S)
+#    #initialize KL to be this
+#    KL1 = gradient_log_variational(params,samples,0)
+#    KL1 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,0,S,num_particles)
+#    KL1 = np.sum(KL1)/S
+#    KL2 = gradient_log_variational(params,samples,1)
+#    KL2 *= log_variational(params,samples)-h_s(samples, num_particles)-c_i(params,1,S,num_particles)
+#    KL2 = np.sum(KL2)/S
+#    KL = np.array([KL1,KL2])
+#    return KL
 
 def log_variational(params, theta):
     '''
@@ -114,7 +130,7 @@ def log_abc_kernel(x,std):
         '''
     
     e=std/np.sqrt(M)
-    #e = max(30./iteration,0.03)
+    e = max(30./iteration,0.03)
     #e = 1
     Sx = x
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -164,6 +180,9 @@ if __name__=='__main__':
     for i in range(500):
         params,m,v = iterate(params,50,50,i,m,v)
         iteration +=1
+        if params[1]<=0:
+            params = np.random.uniform(0,1,2)
+            i=0
         if i%100==0:
             print params
     print params
@@ -176,9 +195,9 @@ if __name__=='__main__':
     sigma = params[1]
     x = np.linspace(0,3,100)
     #fig, ax = plt.subplots(1, 1)
-    AVABCparams20 = np.array([0.223545, 0.289477])
-    AVABCparams = np.array([0.100478,0.259761])
-    params = np.array([ 0.14475092,0.32900886])
+    #AVABCparams20 = np.array([0.223545, 0.289477])
+    #AVABCparams = np.array([0.100478,0.259761])
+    #params = np.array([ 0.14475092,0.32900886])
     #plt.plot(x,np.exp(log_variational(AVABCparams,x)), label='AVABC 120k')
     #plt.plot(x,np.exp(log_variational(AVABCparams20,x)), label='AVABC 20k')
     plt.plot(x,np.exp(log_variational(params,x)),label='BBVI/VBIL 1.2M')
