@@ -9,12 +9,11 @@ import math
 
 all_gradients = []
 lower_bounds = []
-
 def iterate(params,num_samples,num_particles,n,k,i,m,v):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    g = -grad_KL(params, num_samples,num_particles,n,k)
+    g = -grad_KL(params, num_samples,num_particles,n,k,i)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
@@ -24,15 +23,15 @@ def iterate(params,num_samples,num_particles,n,k,i,m,v):
     params = params+a*g
     return params,m,v
 
-def grad_KL(params, num_samples, num_particles, n,k):
+def grad_KL(params, num_samples, num_particles, n,k,i):
     S = num_samples
     samples = sample_theta(params,S)
     #initialize KL to be this
     KL1 = gradient_log_variational(params,samples,0)
-    KL1 *= log_variational(params,samples)-h_s(samples, n,k,num_particles)-c_i(params,n,k,0,S,num_particles)
+    KL1 *= log_variational(params,samples)-h_s(samples, n,k,num_particles,i)-c_i(params,n,k,0,S,num_particles)
     KL1 = np.sum(KL1)/S
     KL2 = gradient_log_variational(params,samples,1)
-    KL2 *= log_variational(params,samples)-h_s(samples, n,k,num_particles)-c_i(params,n,k,1,S,num_particles)
+    KL2 *= log_variational(params,samples)-h_s(samples, n,k,num_particles,i)-c_i(params,n,k,1,S,num_particles)
     KL2 = np.sum(KL2)/S
     KL = np.array([KL1,KL2])
     return KL
@@ -68,12 +67,12 @@ def gradient_check():
     print gradient_log_variational(params,0.5,0)
     print gradient_log_variational(params,0.5,1)
 
-def h_s(theta,n,k,num_particles):
-    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,k,num_particles)
+def h_s(theta,n,k,num_particles,i):
+    h_s = np.log(prior_density(theta))+abc_log_likelihood(theta,n,k,num_particles,i)
     #print h_s
     return h_s
 
-def abc_log_likelihood(samples,n,k,num_particles):
+def abc_log_likelihood(samples,n,k,num_particles,i):
     N=num_particles
     S = len(samples)
     log_kernels = np.zeros(N)
@@ -81,7 +80,7 @@ def abc_log_likelihood(samples,n,k,num_particles):
     for s in range(S):
         theta = samples[s]
         x = simulator(theta,n,N)
-        log_kernels = log_abc_kernel(x,k)
+        log_kernels = log_abc_kernel(x,k,i)
         ll[s] = misc.logsumexp(log_kernels)
         ll[s] = np.log(1./N)+ll[s]
     return ll
@@ -89,7 +88,7 @@ def abc_log_likelihood(samples,n,k,num_particles):
 def simulator(theta,n,N):
     return np.random.binomial(n,theta,size=N)
 
-def log_abc_kernel(x,k):
+def log_abc_kernel(x,k,i):
     '''
         @summary: kernel density, we use normal here
         @param y: observed data
@@ -97,7 +96,8 @@ def log_abc_kernel(x,k):
         @param e: bandwith of density
         '''
     #e=np.std(x)/np.sqrt(len(data))
-    e = 0.5
+    e = 5
+    #e=10./np.sqrt(i+1)
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -132,43 +132,35 @@ def generate_kumaraswamy(params,u):
     return (1-(1-u)**(1./b))**(1./a)
 
 if __name__=='__main__':
-    n=100
-    k=20
-    params = np.array([10.,10.])
-    num_samples = 10
-    num_particles = 10
-    print grad_KL(params, num_samples,num_particles,n,k)
-
-if __name__=='__main__':
     print gradient_check()
-    #n = 100
-    #k = 80
-    #params = np.random.uniform(10,100,2)
-    #m = np.array([0.,0.])
-    #v = np.array([0.,0.])
-    #lower_bounds = []
-    #for i in range(2000):
-    #    params,m,v = iterate(params,10,10,n,k,i,m,v)
-    #    if i%100==0:
-    #        print params
-    #print params
+    n = 100
+    k = 20
+    params = np.random.uniform(10,100,2)
+    m = np.array([0.,0.])
+    v = np.array([0.,0.])
+    lower_bounds = []
+    for i in range(500):
+        params,m,v = iterate(params,100,100,n,k,i,m,v)
+        if i%100==0:
+            print params
+    print params
 
-    #print "true mean"
-    #print (k+1.)/(n+2.)
-    #U = np.random.uniform(0,1,100000)
-    #samples = generate_kumaraswamy(params,U)
-    #print "estimated mean"
-    #print np.mean(samples)
-    #a = k+1
-    #b = n-k+1
-    #x = np.linspace(0,1,100)
-    #fig, ax = plt.subplots(1, 1)
-    ##plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
-    ##plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-    #plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    #plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
-    #plt.legend()
-    #plt.show()
+    print "true mean"
+    print (k+1.)/(n+2.)
+    U = np.random.uniform(0,1,100000)
+    samples = generate_kumaraswamy(params,U)
+    print "estimated mean"
+    print np.mean(samples)
+    a = k+1
+    b = n-k+1
+    x = np.linspace(0,1,100)
+    fig, ax = plt.subplots(1, 1)
+    #plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
+    #plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
+    plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
+    plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
+    plt.legend()
+    plt.show()
 
 #
 #    num_samples = 1

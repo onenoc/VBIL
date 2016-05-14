@@ -30,11 +30,12 @@ def c_i(params,n,data,S,i):
     return np.cov(first,second)[0][1]/np.cov(first,second)[1][1]
     
 def sample_theta(params,S):
-    return np.random.gamma(params[0],1/params[1],size=S)
+    print params[0], params[1]
+    return np.random.gamma(np.exp(params[0]),1/np.exp(params[1]),size=S)
 
 def fisher_info(params):
-    alpha = params[0]
-    beta = params[1]
+    alpha = np.exp(params[0])
+    beta = np.exp(params[1])
     I = np.zeros((2,2))
     I[0][0] = special.polygamma(1,alpha)
     I[0][1] = -1/beta
@@ -53,8 +54,8 @@ def gradient_log_recognition(params,theta,i):
     @param theta: the value
     @param params: the parameters of your recognition model.
     '''
-    alpha = params[0]
-    beta = params[1]
+    alpha = np.exp(params[0])
+    beta = np.exp(params[1])
     delta=[]
     delta.append(np.log(theta)+np.log(beta)-special.psi(alpha))
     delta.append(alpha/beta-theta)
@@ -132,12 +133,12 @@ if __name__=='__main__':
     M = 15
     data = data_Sy(t_lambda,M)
     #params = np.array([10.,10.])
-    params = np.random.uniform(10,100,2)
+    params = np.random.uniform(0,1,2)
     for i in range(250):
         params = iterate_nat_grad(params,data,i)
         if i%10==0:
-            alpha = params[0]
-            beta = params[1]
+            alpha = np.exp(params[0])
+            beta = np.exp(params[1])
             print "estimated params"
             print params
             print "estimated mean"

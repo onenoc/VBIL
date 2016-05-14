@@ -11,7 +11,6 @@ import pickle
 all_gradients = []
 lower_bounds = []
 M=15
-Sy =1
 iteration = 1
 def iterate(params,num_samples,num_particles,i,m,v):
     b_1 = 0.9
@@ -117,6 +116,7 @@ def log_abc_kernel(x,std):
     #e = max(30./iteration,0.03)
     #e = 1
     Sx = x
+    Sy = trueData()
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 
 def c_i(params,i,S,num_particles):
@@ -146,6 +146,13 @@ def log_prior_density(theta):
     params = np.array([mu,sigma])
     return log_variational(params, theta)
 
+#correct
+def trueData():
+    #np.random.seed(5)
+    #true = np.mean(np.random.exponential(20,M))
+    #np.random.seed()
+    return 1
+
 #Correct
 def generate_lognormal(params,S):
     mu=params[0]
@@ -154,71 +161,71 @@ def generate_lognormal(params,S):
     X = np.exp(Y)
     return X
 
+
+
 if __name__=='__main__':
-    params = np.zeros(2)
-    params[0] = np.random.uniform(0,1)
-    params[1] = np.random.uniform(0,1)
-    m = np.array([0.,0.])
-    v = np.array([0.,0.])
-    lower_bounds = []
-    for i in range(500):
-        params,m,v = iterate(params,50,50,i,m,v)
-        iteration +=1
-        if i%100==0:
-            print params
-    print params
-    print "true mean"
-    print (M+1.)/(Sy*M+1)
-    samples = generate_lognormal(params,10000)
-    print "estimated mean"
-    print np.mean(samples)
-    mu = params[0]
-    sigma = params[1]
-    x = np.linspace(0,3,100)
-    #fig, ax = plt.subplots(1, 1)
-    AVABCparams20 = np.array([0.223545, 0.289477])
-    AVABCparams = np.array([0.100478,0.259761])
-    params = np.array([ 0.14475092,0.32900886])
+    #print trueData()
+    #params = np.zeros(2)
+    #params[0] = np.random.uniform(0,1)
+    #params[1] = np.random.uniform(0,1)
+    #m = np.array([0.,0.])
+    #v = np.array([0.,0.])
+    #lower_bounds = []
+    #for i in range(500):
+    #    params,m,v = iterate(params,50,50,i,m,v)
+    #    iteration +=1
+    #    if i%100==0:
+    #        print params
+    #print params
+    #print "true mean"
+    #print (M+1.)/(trueData()*M+1)
+    #samples = generate_lognormal(params,10000)
+    #print "estimated mean"
+    #print np.mean(samples)
+    #mu = params[0]
+    #sigma = params[1]
+    #x = np.linspace(0,3,100)
+    ##fig, ax = plt.subplots(1, 1)
+    #AVABCparams20 = np.array([0.223545, 0.289477])
+    #AVABCparams = np.array([0.100478,0.259761])
+    #params = np.array([ 0.14475092,0.32900886])
     #plt.plot(x,np.exp(log_variational(AVABCparams,x)), label='AVABC 120k')
     #plt.plot(x,np.exp(log_variational(AVABCparams20,x)), label='AVABC 20k')
-    plt.plot(x,np.exp(log_variational(params,x)),label='BBVI/VBIL 1.2M')
-    plt.plot(x,stats.gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
-    plt.title('Posteriors for $\lambda=1$, AVABC and BBVI')
-    plt.legend()
-    plt.show()
-
-    #params = np.array([0.223545, 0.289477])
-    #params = np.array([5,5])
-    #AVABC_gradients_1 = pickle.load(open('gradients-sigma-single-correct-far.pkl','rb'))
-    #AVABC_gradients_10 = pickle.load(open('gradients-single-sigma-far.pkl','rb'))
-    #all_gradients_10=[]
-    #all_gradients_1=[]
-    #num_samples = 1
-    #num_particles = 1
-    #for i in range(1000):
-    #    all_gradients_10.append(-grad_KL(params,10,num_particles)[1])
-    #    all_gradients_1.append(-grad_KL(params,1,num_particles)[1])
-    #    #print grad_KL(params, num_samples,num_particles)[1]
-    #AVABC_gradients_1 = np.asarray(AVABC_gradients_1)
-    #AVABC_gradients_10 = np.asarray(AVABC_gradients_10)
-    #all_gradients_10 = np.asarray(all_gradients_10)
-    #all_gradients_1 = np.asarray(all_gradients_1)
-    #density_AVABC_10 = gaussian_kde(AVABC_gradients_10)
-    #density_AVABC_1 = gaussian_kde(AVABC_gradients_1)
-    #density_BBVI_10 = gaussian_kde(all_gradients_10)
-    #density_BBVI_1 = gaussian_kde(all_gradients_1)
-    #print np.std(AVABC_gradients_1)
-    #print np.std(AVABC_gradients_10)
-    #print np.std(all_gradients_1)
-    #print np.std(all_gradients_10)
-    ##xs = np.linspace(np.mean(AVABC_gradients_10)-2*np.std(AVABC_gradients_10), np.mean(AVABC_gradients_10)+2*np.std(AVABC_gradients_10),200)
-    ##plt.plot(xs,density_AVABC_10(xs),label='AVABC 10 samples')
-    ##plt.plot(xs,density_AVABC_1(xs),label='AVABC 1 sample')
-    ##plt.plot(xs,density_BBVI_10(xs),label='BBVI 10 samples')
-    ##plt.plot(xs,density_BBVI_1(xs),label='BBVI 1 sample')
-    #plt.hist(AVABC_gradients_1)
-    #plt.hist(AVABC_gradients_10)
-    #plt.title(r'$\nabla_{\sigma}\mathcal{L}$, AVABC and BBVI, convergence parameters,$\lambda$=1')
+    #plt.plot(x,np.exp(log_variational(params,x)),label='BBVI/VBIL 1.2M')
+    #plt.plot(x,stats.gamma.pdf(x,M+1,scale=1./(trueData()*M+1)),label='true posterior')
+    #plt.title('Posteriors for $\lambda=1$, AVABC and BBVI')
     #plt.legend()
     #plt.show()
+
+    #params = np.array([0.223545, 0.289477])
+    params = np.array([5,5])
+    AVABC_gradients_1 = pickle.load(open('gradients-single-sigma-far.pkl','rb'))
+    AVABC_gradients_10 = pickle.load(open('gradients.pkl','rb'))
+    all_gradients_10=[]
+    all_gradients_1=[]
+    num_samples = 1
+    num_particles = 1
+    for i in range(1000):
+        all_gradients_10.append(-grad_KL(params,10,num_particles)[1])
+        all_gradients_1.append(-grad_KL(params,1,num_particles)[1])
+        #print grad_KL(params, num_samples,num_particles)[1]
+    AVABC_gradients_1 = np.asarray(AVABC_gradients_1)
+    AVABC_gradients_10 = np.asarray(AVABC_gradients_10)
+    all_gradients_10 = np.asarray(all_gradients_10)
+    all_gradients_1 = np.asarray(all_gradients_1)
+    density_AVABC_10 = gaussian_kde(AVABC_gradients_10)
+    density_AVABC_1 = gaussian_kde(AVABC_gradients_1)
+    density_BBVI_10 = gaussian_kde(all_gradients_10)
+    density_BBVI_1 = gaussian_kde(all_gradients_1)
+    print np.std(AVABC_gradients_10)
+    print np.std(all_gradients_1)
+    print np.std(all_gradients_10)
+    xs = np.linspace(np.mean(AVABC_gradients_10)-2*np.std(AVABC_gradients_10), np.mean(AVABC_gradients_10)+2*np.std(AVABC_gradients_10),200)
+    plt.plot(xs,density_AVABC_10(xs),label='AVABC 10 samples')
+    #plt.plot(xs,density_AVABC_1(xs),label='AVABC 1 sample')
+    plt.plot(xs,density_BBVI_10(xs),label='BBVI 10 samples')
+    #plt.plot(xs,density_BBVI_1(xs),label='BBVI 1 sample')
+    plt.title(r'$\nabla_{\sigma}\mathcal{L}$, AVABC and BBVI, convergence parameters,$\lambda$=1')
+    plt.legend()
+    plt.show()
 
