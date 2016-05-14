@@ -24,10 +24,12 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 0.25
+    S = num_samples
+    a = 5*(S**(1./4))*1e-2
+    #a = 0.25
     params = params+a*m_h/(np.sqrt(v_h)+e)
     #params = params+a*g
-    return params,m,v
+    return params,m,v,LB
 
 def lower_bound(params,samples,num_particles):
     S = len(samples)
@@ -177,15 +179,17 @@ if __name__=='__main__':
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     lower_bounds = []
+    true_iter = 0
     for i in range(500):
-        params,m,v = iterate(params,50,50,i,m,v)
+        params,m,v,LB = iterate(params,50,50,i,m,v)
         iteration +=1
+        true_iter+=1
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
             i=0
         if i%100==0:
             print params
-    print params
+    print params,true_iter
     print "true mean"
     print (M+1.)/(Sy*M+1)
     samples = generate_lognormal(params,10000)
