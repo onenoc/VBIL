@@ -177,23 +177,15 @@ if __name__=='__main__':
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     lower_bounds = []
-    iterating =1
-    i=1
-    K=10
-    while i<2000:#iterating==1:
+    for i in range(500):
         params,m,v = iterate(params,50,50,i,m,v)
-        i +=1
-        #lower_bounds.append(LB)
-        #if len(lower_bounds)>K+2:
-        #    lb2 = np.mean(np.array(lower_bounds[-K:]))
-        #    lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
-        #    if abs(lb2-lb1)<1e-5:
-        #        iterating=0
+        iteration +=1
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
-        if i%10==0:
+            i=0
+        if i%100==0:
             print params
-    print params,i
+    print params
     print "true mean"
     print (M+1.)/(Sy*M+1)
     samples = generate_lognormal(params,10000)
