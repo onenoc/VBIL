@@ -33,7 +33,8 @@ def iterate(params,num_samples,num_particles,i,m,v):
 
 def lower_bound(params,samples,num_particles):
     S = len(samples)
-    return (log_variational(params,samples)-h_s(samples, num_particles))/S
+    #without the sum, which is a highly nonstandard convergence criteria, this performs VERY well
+    return np.sum(log_variational(params,samples)-h_s(samples, num_particles))/S
 
 def grad_KL(params, samples, num_particles,LB):
     S = len(samples)
@@ -187,8 +188,7 @@ if __name__=='__main__':
         i+=1
         lower_bounds.append(LB)
         if params[1]<=0:
-            #params = np.random.uniform(0,1,2)
-            i=0
+            params = np.random.uniform(0,1,2)
         if i%10==0:
             print params
         if len(lower_bounds)>K+1:
@@ -215,6 +215,8 @@ if __name__=='__main__':
     plt.plot(x,stats.gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
     plt.title('Posteriors for $\lambda=1$, AVABC and BBVI')
     plt.legend()
+    plt.show()
+    plt.plot(lower_bounds[10:])
     plt.show()
 
     #params = np.array([0.223545, 0.289477])
