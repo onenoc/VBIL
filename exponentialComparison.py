@@ -132,7 +132,6 @@ def log_abc_kernel(x,std):
         '''
     
     e=std/np.sqrt(M)
-    e = max(30./iteration,0.03)
     #e = 1
     Sx = x
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
@@ -176,22 +175,28 @@ if __name__=='__main__':
     params = np.zeros(2)
     params[0] = np.random.uniform(0,1)
     params[1] = np.random.uniform(0,1)
+    params = np.random.uniform(0,1,2)
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     lower_bounds = []
-    true_iter = 0
     i=0
-    while i!=-1:
+    iterating = 1
+    K=10
+    while iterating==1:
         params,m,v,LB = iterate(params,50,50,i,m,v)
         i+=1
-        iteration +=1
-        true_iter+=1
+        lower_bounds.append(LB)
         if params[1]<=0:
-            params = np.random.uniform(0,1,2)
+            #params = np.random.uniform(0,1,2)
             i=0
-        if i%100==0:
+        if i%10==0:
             print params
-    print params,true_iter
+        if len(lower_bounds)>K+1:
+            lb2= np.mean(np.array(lower_bounds[-K:]))
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            if abs(lb2-lb1)<1e-5:
+                iterating = 0
+    print params,i
     print "true mean"
     print (M+1.)/(Sy*M+1)
     samples = generate_lognormal(params,10000)
