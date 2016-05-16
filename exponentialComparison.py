@@ -180,8 +180,10 @@ if __name__=='__main__':
     v = np.array([0.,0.])
     lower_bounds = []
     true_iter = 0
-    for i in range(500):
+    i=0
+    while i!=-1:
         params,m,v,LB = iterate(params,50,50,i,m,v)
+        i+=1
         iteration +=1
         true_iter+=1
         if params[1]<=0:
